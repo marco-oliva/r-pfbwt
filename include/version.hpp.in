@@ -1,0 +1,36 @@
+//
+//  version.hpp.in
+//
+//  Copyright 2022 Marco Oliva. All rights reserved.
+//
+
+#ifndef version_hpp
+#define version_hpp
+
+namespace rpfbwt
+{
+
+struct Version
+{
+    static constexpr char RPFBWT_GIT_BRANCH[] = "@GIT_BRANCH@";
+    static constexpr char RPFBWT_GIT_COMMIT_HASH[] = "@GIT_COMMIT_HASH@";
+    static constexpr std::size_t RPFBWT_MAJOR = @VERSION_MAJOR@;
+    static constexpr std::size_t RPFBWT_MINOR = @VERSION_MINOR@;
+    static constexpr std::size_t RPFBWT_PATCH = @VERSION_PATCH@;
+    
+    static void print()
+    {
+        std::cout
+        << RPFBWT_GIT_BRANCH << ":"
+        << RPFBWT_GIT_COMMIT_HASH << ":"
+        << " "
+        << RPFBWT_MAJOR << "." << RPFBWT_MINOR << "." << RPFBWT_PATCH
+        << std::endl;
+        
+        exit(0);
+    }
+};
+
+}
+
+#endif //version_hpp
