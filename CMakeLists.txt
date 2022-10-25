@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(r-pfbwt)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -198,28 +198,35 @@ FetchContent_Populate(Mio)
 include_directories(${mio_SOURCE_DIR}/single_include)
 
 # rimerge
-FetchContent_Declare(
-        rimerge
+include(ExternalProject)
+ExternalProject_Add(rimerge
         GIT_REPOSITORY https://github.com/marco-oliva/rimerge.git
-        GIT_TAG        master
-)
-if(NOT rimerge_POPULATED)
-    FetchContent_Populate(rimerge)
-    include_directories(${rimerge_SOURCE_DIR}/include)
-endif()
+        GIT_TAG master
+        )
+ExternalProject_Get_property(rimerge INSTALL_DIR)
+set(rimerge-include ${INSTALL_DIR}/src/rimerge/include)
+include_directories(${rimerge-include})
+#set(rimerge-lib ${INSTALL_DIR}/src/rimerge-build/librimerge.a)
 
 
 ################################################################################
 # Targets
 
-include_directories(include)
+set(rpfbwt-includes
+        "${CMAKE_SOURCE_DIR}/include"
+        "${rimerge-include}")
+
+set(rpfbwt-libs
+        "${rimerge-lib}")
+
+include_directories(${rpfbwt-includes})
 
 add_executable(rpfbwt32 rpfbwt.cpp)
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rimerge)
+target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 ${rpfbwt-libs})
 target_compile_options(rpfbwt32 PUBLIC -DNOTHREADS)
 
 add_executable(rpfbwt64 rpfbwt.cpp)
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rimerge)
+target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 ${rimerge-lib})
 target_compile_options(rpfbwt64 PUBLIC -DNOTHREADS)
 
 ################################################################################
