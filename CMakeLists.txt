@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(r-pfbwt)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -37,10 +37,10 @@ message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
 
 message(STATUS "Generating version.hpp")
 configure_file(
-        ${CMAKE_SOURCE_DIR}/include/version.hpp.in
-        ${CMAKE_BINARY_DIR}/generated/version.hpp)
+        ${PROJECT_SOURCE_DIR}/include/version.hpp.in
+        ${PROJECT_BINARY_DIR}/generated/version.hpp)
 
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${PROJECT_BINARY_DIR}/generated)
 
 ################################################################################
 # Compiler and linker flags
@@ -61,12 +61,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 
 include(FetchContent)
 
-## Add gsacak
+# gsacak
 FetchContent_Declare(
         gsacak
         GIT_REPOSITORY https://github.com/felipelouza/gsa-is.git
 )
-
 FetchContent_GetProperties(gsacak)
 if(NOT gsacak_POPULATED)
     FetchContent_Populate(gsacak)
@@ -78,29 +77,11 @@ if(NOT gsacak_POPULATED)
     target_compile_options(gsacak64 PUBLIC -DM64)
 endif()
 
-
-if(${BUILD_BENCHMARKS})
-    ## Google benchmark
-    FetchContent_Declare(
-            benchmark
-            GIT_REPOSITORY https://github.com/google/benchmark.git
-            GIT_TAG        master
-    )
-
-    FetchContent_GetProperties(benchmark)
-    if(NOT benchmark_POPULATED)
-        FetchContent_Populate(benchmark)
-        set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable testing of the benchmark library." FORCE)
-        add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
-endif()
-
-## Add sdsl
+# sdsl
 FetchContent_Declare(
         sdsl
         GIT_REPOSITORY https://github.com/simongog/sdsl-lite
 )
-
 FetchContent_GetProperties(sdsl)
 if(NOT sdsl_POPULATED)
     FetchContent_Populate(sdsl)
@@ -108,13 +89,12 @@ if(NOT sdsl_POPULATED)
     add_subdirectory(${sdsl_SOURCE_DIR} ${sdsl_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-## Add divsuffsort
+# divsuffsort
 FetchContent_Declare(
         divsufsort
         GIT_REPOSITORY https://github.com/simongog/libdivsufsort.git
         GIT_TAG        2.0.1
 )
-
 FetchContent_GetProperties(divsufsort)
 if(NOT divsufsort_POPULATED)
     FetchContent_Populate(divsufsort)
@@ -147,6 +127,7 @@ FetchContent_Declare(
         GIT_TAG        v3.0.1
 )
 # Making available only if building tests
+FetchContent_GetProperties(Catch2)
 if (NOT Catch2_POPULATED AND (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug"))
     FetchContent_MakeAvailable(Catch2)
 endif()
@@ -157,7 +138,7 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG        v1.10.0
 )
-
+FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
     FetchContent_Populate(spdlog)
     include_directories(${spdlog_SOURCE_DIR}/include)
@@ -169,7 +150,7 @@ FetchContent_Declare(
         GIT_REPOSITORY "https://github.com/CLIUtils/CLI11.git"
         GIT_TAG "v1.9.0"
 )
-
+FetchContent_GetProperties(cli11)
 if(NOT cli11_POPULATED)
     FetchContent_Populate(cli11)
     include_directories(${cli11_SOURCE_DIR}/include)
@@ -181,7 +162,6 @@ FetchContent_Declare(
         GIT_REPOSITORY git@github.com:marco-oliva/PFP-DS.git
         GIT_TAG        main
 )
-
 FetchContent_GetProperties(pfp_ds)
 if(NOT pfp_ds_POPULATED)
     FetchContent_Populate(pfp_ds)
@@ -191,22 +171,28 @@ endif()
 
 # mio mmap
 FetchContent_Declare(
-        Mio
+        mio
         GIT_REPOSITORY https://github.com/mandreyel/mio.git
 )
-FetchContent_Populate(Mio)
+FetchContent_GetProperties(mio)
+if(NOT mio_POPULATED)
+    FetchContent_Populate(mio)
+endif()
 include_directories(${mio_SOURCE_DIR}/single_include)
 
-# rimerge
-include(ExternalProject)
-ExternalProject_Add(rimerge
-        GIT_REPOSITORY https://github.com/marco-oliva/rimerge.git
-        GIT_TAG master
-        )
-ExternalProject_Get_property(rimerge INSTALL_DIR)
-set(rimerge-include ${INSTALL_DIR}/src/rimerge/include)
-include_directories(${rimerge-include})
-#set(rimerge-lib ${INSTALL_DIR}/src/rimerge-build/librimerge.a)
+
+# rlestring
+FetchContent_Declare(
+        rlestring
+        GIT_REPOSITORY https://github.com/marco-oliva/rle_string.git
+        GIT_TAG        main
+)
+FetchContent_GetProperties(rlestring)
+if(NOT rlestring_POPULATED)
+    FetchContent_Populate(rlestring)
+    add_subdirectory(${rlestring_SOURCE_DIR} ${rlestring_BINARY_DIR} EXCLUDE_FROM_ALL)
+    include_directories(${rlestring_SOURCE_DIR}/include)
+endif()
 
 
 ################################################################################
@@ -222,11 +208,11 @@ set(rpfbwt-libs
 include_directories(${rpfbwt-includes})
 
 add_executable(rpfbwt32 rpfbwt.cpp)
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 ${rpfbwt-libs})
+target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring)
 target_compile_options(rpfbwt32 PUBLIC -DNOTHREADS)
 
 add_executable(rpfbwt64 rpfbwt.cpp)
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 ${rimerge-lib})
+target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
 target_compile_options(rpfbwt64 PUBLIC -DNOTHREADS)
 
 ################################################################################
