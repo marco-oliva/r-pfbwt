@@ -194,26 +194,43 @@ if(NOT rlestring_POPULATED)
     include_directories(${rlestring_SOURCE_DIR}/include)
 endif()
 
+################################################################################
+# Lib
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_BINARY_DIR}/generated)
+
+file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+if (ENABLE_MALLOC_COUNT)
+    message(STATUS "Using malloc_count.c")
+    file(GLOB MALLOC_COUNT_SOURCES ${mcount_SOURCE_DIR}/*.c)
+else()
+    set(MALLOC_COUNT_SOURCES "")
+endif()
+
+add_library(rpfbwt ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
+
+################################################################################
+# Tests
+
+if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    message(STATUS "Building unit tests")
+
+    add_executable(unit_tests_rpfbwt tests/unit_tests.cpp)
+    target_link_libraries(unit_tests_rpfbwt Catch2::Catch2 sdsl gsacak divsufsort divsufsort64)
+
+    enable_testing()
+    add_test(NAME unit_tests_rpfbwt COMMAND unit_tests_rpfbwt)
+endif()
 
 ################################################################################
 # Targets
 
-set(rpfbwt-includes
-        "${CMAKE_SOURCE_DIR}/include"
-        "${rimerge-include}")
-
-set(rpfbwt-libs
-        "${rimerge-lib}")
-
-include_directories(${rpfbwt-includes})
-
 add_executable(rpfbwt32 rpfbwt.cpp)
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring)
-target_compile_options(rpfbwt32 PUBLIC -DNOTHREADS)
+target_link_libraries(rpfbwt32 rpfbwt dl gsacak sdsl divsufsort divsufsort64 rlestring)
 
 add_executable(rpfbwt64 rpfbwt.cpp)
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
-target_compile_options(rpfbwt64 PUBLIC -DNOTHREADS)
+target_link_libraries(rpfbwt64 rpfbwt dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
 
 ################################################################################
 # Install
