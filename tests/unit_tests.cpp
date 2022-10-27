@@ -128,6 +128,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     
     std::vector<uint_t> freq_l2(dict_l2_prep.size() + 1, 0);
     for (auto& p_id : parse_l2) { freq_l2[p_id] += 1; }
+    freq_l2[0] = 0;
     
     std::string bwt = "CCCCC#CCCTTTTC###GGTATAATTACCC#####GGGAGCAAAGGTTTTTGGGTTTAAAAAAAAAAGGTGTTTTTTTTTAAA"
                       "ATTTTTCCCCCCCCTTTAAAAAAACCCAAAACAAGGGGGTGGGGGCCCCCGGGGGGGGCCCCCCCCAAGCCAAAAACGAAAAA"
