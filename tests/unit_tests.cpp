@@ -135,7 +135,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
                       "ACCCCCGTCCTTTTCACCCCACGGGTGGTGTGTTTTTTTTGGGGGTGGGGCCCGCGGG";
     
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2);
-    std::vector<uint8_t> easy_chars = rpfbwt_algo.get_easy_chars();
+    std::vector<uint8_t> easy_chars = rpfbwt_algo.get_easy_and_semi_hard_chars();
     
     REQUIRE(not easy_chars.empty());
 }

@@ -47,7 +47,7 @@ public:
         l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
     }
 
-    std::vector<dict_l1_data_type> get_easy_chars()
+    std::vector<dict_l1_data_type> get_easy_and_semi_hard_chars()
     {
         std::vector<dict_l1_data_type> out;
         
@@ -57,6 +57,7 @@ public:
         size_t l_left  = 0;
         size_t l_right = 0;
         std::size_t easy_chars = 0;
+        std::size_t semi_hard_chars = 0;
         std::size_t hard_chars = 0;
         while (i < l1_d.saD.size())
         {
@@ -130,9 +131,13 @@ public:
         return out;
     }
 
-    std::vector<dict_l1_data_type> get_hard_chars()
+    void get_hard_characters()
     {
+        // Iterate over the BWT of P1
+        for(uint_t i = 0; i < l2_pfp.n; i++)
+        {
 
+        }
     }
     
 };
