@@ -22,7 +22,6 @@ private:
     std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
     
     pfpds::pf_parsing<parse_int_type> l2_pfp;
-    
 
 public:
     
@@ -47,7 +46,7 @@ public:
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
         l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
     }
-    
+
     std::vector<dict_l1_data_type> get_easy_chars()
     {
         std::vector<dict_l1_data_type> out;
@@ -75,7 +74,7 @@ public:
             else
             {
                 std::set<uint8_t> chars;
-                chars.insert(l1_d.d[sn]);
+                chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
             
                 // use the RMQ data structure to find how many of the following suffixes are the same except for the terminator (so they're the same suffix but in different phrases)
                 // use the document array and the table of phrase frequencies to find the phrases frequencies and sum them up
@@ -87,13 +86,13 @@ public:
                 if (i < l1_d.saD.size())
                 {
                     auto new_sn = l1_d.saD[i];
-                    chars.insert(l1_d.d[new_sn]);
                     auto new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
                     size_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
+                        chars.insert(l1_d.d[((new_sn + l1_d.d.size() - 1) % l1_d.d.size())]);
                         j += l1_freq[new_phrase];
                         ++i;
                     
@@ -102,7 +101,6 @@ public:
                         if (i < l1_d.saD.size())
                         {
                             new_sn = l1_d.saD[i];
-                            chars.insert(l1_d.d[new_sn]);
                             new_phrase = l1_d.daD[i] + 1;
                             assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
                             new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
@@ -114,7 +112,7 @@ public:
                 if (chars.size() == 1)
                 {
                     // easy syffixes
-                    out.insert(out.end(), *(chars.begin()), (l_right - l_left) + 1);
+                    out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin()));
                     easy_chars += (l_right - l_left) + 1;
                 }
                 else
@@ -130,6 +128,11 @@ public:
     
         spdlog::info("Easy: {} Hard {}", easy_chars, hard_chars);
         return out;
+    }
+
+    std::vector<dict_l1_data_type> get_hard_chars()
+    {
+
     }
     
 };
