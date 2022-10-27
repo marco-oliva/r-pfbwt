@@ -28,12 +28,12 @@ public:
     
     const std::size_t int_shift = 10;
     
-    rpfbwt_algo(const std::vector<dict_l1_data_type>& l1_d_v,
-                const std::vector<uint_t>& l1_freq_v,
+    rpfbwt_algo(std::vector<dict_l1_data_type>& l1_d_v,
+                std::vector<uint_t>& l1_freq_v,
                 std::size_t l1_w,
-                const std::vector<parse_int_type>& l2_d_v,
-                const std::vector<parse_int_type>& l2_p_v,
-                const std::vector<uint_t>& l2_freq_v,
+                std::vector<parse_int_type>& l2_d_v,
+                std::vector<parse_int_type>& l2_p_v,
+                std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
     : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w)
     {
