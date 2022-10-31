@@ -208,7 +208,7 @@ else()
     set(MALLOC_COUNT_SOURCES "")
 endif()
 
-add_library(rpfbwt ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
+# add_library(rpfbwt ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 
 ################################################################################
 # Tests
@@ -227,10 +227,10 @@ endif()
 # Targets
 
 add_executable(rpfbwt32 rpfbwt.cpp)
-target_link_libraries(rpfbwt32 rpfbwt dl gsacak sdsl divsufsort divsufsort64 rlestring)
+target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring)
 
 add_executable(rpfbwt64 rpfbwt.cpp)
-target_link_libraries(rpfbwt64 rpfbwt dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
+target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
 
 ################################################################################
 # Install
