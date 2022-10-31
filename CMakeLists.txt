@@ -160,7 +160,7 @@ endif()
 FetchContent_Declare(
         pfp_ds
         GIT_REPOSITORY git@github.com:marco-oliva/PFP-DS.git
-        GIT_TAG        main
+        GIT_TAG        easy_hard_algo
 )
 FetchContent_GetProperties(pfp_ds)
 if(NOT pfp_ds_POPULATED)

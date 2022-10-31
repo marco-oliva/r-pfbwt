@@ -16,12 +16,46 @@ template <typename dict_l1_data_type, typename parse_int_type = uint32_t>
 class rpfbwt_algo
 {
 
-private:
+public: // TODO: back to private
 
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
     
     pfpds::pf_parsing<parse_int_type> l2_pfp;
+    
+    std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
+    
+    void init_v_table()
+    {
+        // now build V
+        for (std::size_t row = 0; row < l2_pfp.M.size(); row++)
+        {
+            const auto& m =  l2_pfp.M[row];
+        
+            std::vector<std::pair<parse_int_type, std::size_t>> phrase_counts;
+            for (std::size_t r = m.left; r <= m.right; r++)
+            {
+                auto phrase = l2_pfp.dict.colex_id[r];
+                std::size_t phrase_start = l2_pfp.dict.select_b_d(phrase + 1);
+                std::size_t phrase_length = l2_pfp.dict.length_of_phrase(phrase + 1);
+                parse_int_type c = l2_pfp.dict.d[phrase_start + (phrase_length - m.len - 1)];
+                if (c > int_shift) { c -= int_shift; }
+            
+                if (phrase_counts.empty() or phrase_counts.back().first != c)
+                {
+                    phrase_counts.push_back(std::make_pair(c, 1));
+                }
+                else { phrase_counts.back().second += 1; }
+            }
+        
+            // update
+            for (auto const& c_count : phrase_counts)
+            {
+                std::pair<std::size_t, std::size_t> v_element = std::make_pair(row, c_count.second);
+                l2_pfp_v_table[c_count.first].emplace_back(v_element);
+            }
+        }
+    }
 
 public:
     
@@ -34,20 +68,21 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
-    : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w)
-    {
-    
-    }
+    : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+    { init_v_table(); }
     
     rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
-    : l1_d(l1_prefix, l1_w), l2_pfp(l1_prefix + ".parse", l2_w)
+    : l1_d(l1_prefix, l1_w), l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
         l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
+        delete[] occ;
+        
+        init_v_table();
     }
-
-    std::vector<dict_l1_data_type> get_easy_and_semi_hard_chars()
+    
+    std::vector<dict_l1_data_type> l1_bwt()
     {
         std::vector<dict_l1_data_type> out;
         
@@ -59,6 +94,7 @@ public:
         std::size_t easy_chars = 0;
         std::size_t semi_hard_chars = 0;
         std::size_t hard_chars = 0;
+        std::size_t row = 0;
         while (i < l1_d.saD.size())
         {
             size_t left = i;
@@ -74,9 +110,12 @@ public:
             }
             else
             {
-                std::set<uint8_t> chars;
+                std::set<dict_l1_data_type> chars;
                 chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
-            
+    
+                std::set<parse_int_type> pids;
+                pids.insert(phrase);
+                
                 // use the RMQ data structure to find how many of the following suffixes are the same except for the terminator (so they're the same suffix but in different phrases)
                 // use the document array and the table of phrase frequencies to find the phrases frequencies and sum them up
                 j += l1_freq[phrase] - 1; // the next bits are 0s
@@ -94,6 +133,7 @@ public:
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
                         chars.insert(l1_d.d[((new_sn + l1_d.d.size() - 1) % l1_d.d.size())]);
+                        pids.insert(new_phrase);
                         j += l1_freq[new_phrase];
                         ++i;
                     
@@ -109,35 +149,34 @@ public:
                     }
                 
                 }
-            
-                if (chars.size() == 1)
+                
+                if (chars.size() == 1) // easy-easy suffixes
                 {
                     // easy syffixes
                     out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin()));
                     easy_chars += (l_right - l_left) + 1;
                 }
-                else
+                else // easy-hard and hard-hard suffixes
                 {
                     // check for semi-hard.
+                    // go in second level and iterate trough list of positions
+                    std::vector<std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>>> v;
+                    for (const auto& pid : pids)
+                    {
+                       v.push_back(std::ref(l2_pfp_v_table[pid]));
+                    }
+                    
                     hard_chars += (l_right - l_left) + 1;
                 }
-            
+                
                 l_left = l_right + 1;
                 l_right = l_left;
+                row++;
             }
         }
     
         spdlog::info("Easy: {} Hard {}", easy_chars, hard_chars);
         return out;
-    }
-
-    void get_hard_characters()
-    {
-        // Iterate over the BWT of P1
-        for(uint_t i = 0; i < l2_pfp.n; i++)
-        {
-
-        }
     }
     
 };

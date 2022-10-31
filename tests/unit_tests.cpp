@@ -91,7 +91,6 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         14, 17, 2, 9, 11, 4, 19, 13, 6, 16, 25, 3, 6, 16, 24, 16, 18, 8, 23, 15, 22, 2, 9,
         12, 19, 13, 7, 3, 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1
     };
-    for (auto& p_id : parse_l1) { p_id = p_id + 1; }
     
     std::vector<uint_t> freq_l1(dict_l1_prep.size() + 1, 0);
     for (auto& p_id : parse_l1) { freq_l1[p_id] += 1; }
@@ -112,8 +111,80 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     { 2, 9, 12, 19, 13, 7, 3, 6, 16 },
     { 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1 },
     };
-    std::sort(dict_l2_prep.begin(), dict_l2_prep.end());
     for (auto& v : dict_l2_prep) { for (auto& e : v) { e += int_shift; } }
+    dict_l2_prep[0].insert(dict_l2_prep[0].begin(), 1, Dollar);
+    dict_l2_prep[8].insert(dict_l2_prep[8].end(), w_l2, Dollar);
+    std::sort(dict_l2_prep.begin(), dict_l2_prep.end());
+    
+    
+    /**
+        17	-	2 9  - 1
+        21	-	2 9  - 1
+        22	-	2 9  - 1 // for these we would have to look at the grid. This is hard-hard
+        7	-	3 5 11 4 19 15 22 1  - 1 // easy-hard
+        7	-	3 6 16  - 1 // next 3 are hard-hard
+        22	-	3 6 16  - 1
+        25	-	3 6 16  - 1
+        11	-	4 19 13 6 16  - 1
+        18	-	4 19 14 17 2 9  - 1
+        11	-	4 19 15 22 1  - 1
+        3	-	5 11 4 19 15 22 1  - 1
+        0	-	6 16  - 1
+        13	-	6 16  - 1
+        3	-	6 16  - 1
+        3	-	6 16  - 1
+        3	-	6 16  - 1
+        13	-	7 3 5 11 4 19 15 22 1  - 1
+        13	-	7 3 6 16  - 1
+        10	-	8 19 15 22 3 6 16  - 1
+        20	-	8 23 13 7 3 5 11 4 19 15 22 1  - 1
+        18	-	8 23 15 22 2 9  - 1
+        2	-	9 11 4 19 13 6 16  - 1
+        2	-	9 12 19 13 7 3 6 16  - 1
+        2	-	9 16 18 4 19 14 17 2 9  - 1
+        24	-	10 8 19 15 22 3 6 16  - 1
+        9	-	11 4 19 13 6 16  - 1
+        5	-	11 4 19 15 22 1  - 1
+        9	-	12 19 13 7 3 6 16  - 1
+        24	-	12 23 14 21 2 9  - 1
+        19	-	13 6 16  - 1
+        23	-	13 7 3 5 11 4 19 15 22 1  - 1
+        19	-	13 7 3 6 16  - 1
+        19	-	14 17 2 9  - 1
+        23	-	14 21 2 9  - 1
+        19	-	15 22 1  - 1
+        23	-	15 22 2 9  - 1
+        19	-	15 22 3 6 16  - 1
+        9	-	16 18 4 19 14 17 2 9  - 1
+        24	-	16 18 8 23 15 22 2 9  - 1
+        24	-	16 20 8 23 13 7 3 5 11 4 19 15 22 1  - 1
+        6	-	16 24 10 8 19 15 22 3 6 16  - 1
+        6	-	16 24 12 23 14 21 2 9  - 1
+        6	-	16 24 16 18 8 23 15 22 2 9  - 1
+        6	-	16 24 16 20 8 23 13 7 3 5 11 4 19 15 22 1  - 1
+        6	-	16 25 3 6 16  - 1
+        14	-	17 2 9  - 1
+        16	-	18 4 19 14 17 2 9  - 1
+        16	-	18 8 23 15 22 2 9  - 1
+        4	-	19 13 6 16  - 1
+        12	-	19 13 7 3 6 16  - 1
+        4	-	19 14 17 2 9  - 1
+        4	-	19 15 22 1  - 1
+        8	-	19 15 22 3 6 16  - 1
+        16	-	20 8 23 13 7 3 5 11 4 19 15 22 1  - 1
+        14	-	21 2 9  - 1
+        15	-	22 1  - 1
+        15	-	22 2 9  - 1
+        15	-	22 3 6 16  - 1
+        8	-	23 13 7 3 5 11 4 19 15 22 1  - 1
+        12	-	23 14 21 2 9  - 1
+        8	-	23 15 22 2 9  - 1
+        16	-	24 10 8 19 15 22 3 6 16  - 1
+        16	-	24 12 23 14 21 2 9  - 1
+        16	-	24 16 18 8 23 15 22 2 9  - 1
+        16	-	24 16 20 8 23 13 7 3 5 11 4 19 15 22 1  - 1
+        16	-	25 3 6 16  - 1
+     */
     
     std::vector<uint32_t> dict_l2;
     for (auto& phrase : dict_l2_prep)
@@ -124,7 +195,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     }
     dict_l2.push_back(EndOfDict);
     
-    std::vector<uint32_t> parse_l2 = { 1, 5, 6, 4, 2, 9, 7, 3, 8 , 0};
+    std::vector<uint32_t> parse_l2 = { 1, 5, 6, 4, 2, 9, 7, 3, 8, 0};
     
     std::vector<uint_t> freq_l2(dict_l2_prep.size() + 1, 0);
     for (auto& p_id : parse_l2) { freq_l2[p_id] += 1; }
@@ -135,9 +206,38 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
                       "ACCCCCGTCCTTTTCACCCCACGGGTGGTGTGTTTTTTTTGGGGGTGGGGCCCGCGGG";
     
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2);
-    std::vector<uint8_t> easy_chars = rpfbwt_algo.get_easy_and_semi_hard_chars();
-    
+    std::vector<uint8_t> easy_chars = rpfbwt_algo.l1_bwt();
+
     REQUIRE(not easy_chars.empty());
+    
+    size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
+    size_t j = 0;
+    while (i < rpfbwt_algo.l2_pfp.dict.saD.size())
+    {
+        auto sn = rpfbwt_algo.l2_pfp.dict.saD[i];
+        // Check if the suffix has length at least w and is not the complete phrase.
+        auto phrase = rpfbwt_algo.l2_pfp.dict.daD[i] + 1;
+        assert(phrase > 0 && phrase < rpfbwt_algo.l2_pfp.freq.size()); // + 1 because daD is 0-based
+        size_t suffix_length = rpfbwt_algo.l2_pfp.dict.select_b_d(rpfbwt_algo.l2_pfp.dict.rank_b_d(sn + 1) + 1) - sn - 1;
+        if (rpfbwt_algo.l2_pfp.dict.b_d[sn] || suffix_length < rpfbwt_algo.l2_pfp.dict.w) // skip full phrases or suffixes shorter than w
+        {
+            ++i; // Skip
+        }
+        else
+        {
+            std::cout << rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())] - int_shift << "\t-\t";
+            std::size_t sit = 0;
+            while (sit < suffix_length)
+            {
+                std::cout << rpfbwt_algo.l2_pfp.dict.d[sn + sit] - int_shift << " ";
+                sit++;
+            }
+            std::cout << " - " << rpfbwt_algo.l2_pfp.freq[phrase];
+            std::cout << std::endl;
+    
+            ++i;
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
