@@ -9,6 +9,8 @@
 #include <version.hpp>
 #include <spdlog/spdlog.h>
 
+#include <rpfbwt_algorithm.hpp>
+
 int main(int argc, char **argv)
 {
     CLI::App app("rpfbwt");
@@ -25,4 +27,7 @@ int main(int argc, char **argv)
     app.allow_windows_style_options();
 
     CLI11_PARSE(app, argc, argv);
+
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2);
+    std::vector<uint8_t> easy_easy_and_hard_easy_chars = rpfbwt_algo.l1_bwt();
 }

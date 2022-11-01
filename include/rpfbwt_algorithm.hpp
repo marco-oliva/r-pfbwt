@@ -230,7 +230,7 @@ public:
             }
         }
     
-        spdlog::info("Easy: {} Hard {}", easy_chars, hard_hard_chars);
+        spdlog::info("Easy: {} Hard-Easy: {} Hard-Hard: {}", easy_chars, hard_easy_chars, hard_hard_chars);
         return out;
     }
     
