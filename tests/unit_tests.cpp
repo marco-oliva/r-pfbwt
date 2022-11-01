@@ -225,11 +225,15 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         }
         else
         {
-            std::cout << rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())] - int_shift << "\t-\t";
+            uint32_t suff = rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())];
+            if (suff > int_shift) { suff -= int_shift; }
+            std::cout <<  suff << "\t-\t";
             std::size_t sit = 0;
             while (sit < suffix_length)
             {
-                std::cout << rpfbwt_algo.l2_pfp.dict.d[sn + sit] - int_shift << " ";
+                uint32_t c = rpfbwt_algo.l2_pfp.dict.d[sn + sit];
+                if (c > int_shift) { c -= int_shift; }
+                std::cout << c << " ";
                 sit++;
             }
             std::cout << " - " << rpfbwt_algo.l2_pfp.freq[phrase];

@@ -92,8 +92,8 @@ public:
         size_t l_left  = 0;
         size_t l_right = 0;
         std::size_t easy_chars = 0;
-        std::size_t semi_hard_chars = 0;
-        std::size_t hard_chars = 0;
+        std::size_t hard_easy_chars = 0;
+        std::size_t hard_hard_chars = 0;
         std::size_t row = 0;
         while (i < l1_d.saD.size())
         {
@@ -152,62 +152,72 @@ public:
                 
                 if (chars.size() == 1) // easy-easy suffixes
                 {
-                    // easy syffixes
+                    // easy suffixes
                     out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin()));
                     easy_chars += (l_right - l_left) + 1;
                 }
                 else // easy-hard and hard-hard suffixes
                 {
-                    // check for semi-hard.
-                    // go in second level and iterate trough list of positions
-                    std::vector<std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>>> v;
+                    // shorthands
+                    typedef std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>> ve_t; // (row in which that char appears, number of times per row)
+                    typedef std::size_t ve_pq_t; // for the priprity queue the row is enough, the other ingo can be retrieved from ve_t
+                    typedef std::pair<ve_pq_t, std::pair<std::size_t, std::size_t>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
+                    
+                    // go in second level and iterate trough list of positions for the meta-phrases we are interested into
+                    std::vector<ve_t> v;
+                    std::vector<parse_int_type> pids_v;
                     for (const auto& pid : pids)
                     {
-                       v.push_back(std::ref(l2_pfp_v_table[pid])); // (row in which that char appears, number of times per row)
+                       v.push_back(std::ref(l2_pfp_v_table[pid]));
+                       pids_v.push_back(pid);
                     }
 
-                    // make a priority queue
-                    typedef std::pair<std::pair<std::size_t, std::size_t>, std::pair<std::size_t, std::size_t>> pq_t;
+                    // make a priority queue and add elements to it
                     std::priority_queue<pq_t, std::vector<pq_t>, std::less<>> pq;
-
-                    // add elements
-                    for (std::size_t vi = 0; vi < v.size(); i++)
-                    { pq.push({ v[vi].get()[0], { vi, 0 } }); }
-
-                    auto first_element = pq.top();
-                    pq.pop();
-
-                    std::size_t arr_i = first_element.second.first;  // ith array
-                    std::size_t arr_x = first_element.second.second; // index in i-th array
-
-                    // The next element belongs to same array as
-                    // current.
-                    if (arr_x + 1 < v[arr_i].get().size())
-                    { pq.push({ v[arr_i].get()[arr_x + 1], { arr_i, arr_x + 1 } }); }
-
-                    // Now one by one get the minimum element
-                    // from min heap and replace it with next
-                    // element of its array
-                    while (pq.empty() == false) {
-                        ppi curr = pq.top();
-                        pq.pop();
-
-                        // i ==> Array Number
-                        // j ==> Index in the array number
-                        int i = curr.second.first;
-                        int j = curr.second.second;
-
-                        output.push_back(curr.first);
-
-                        // The next element belongs to same array as
-                        // current.
-                        if (j + 1 < arr[i].size())
-                            pq.push({ arr[i][j + 1], { i, j + 1 } });
+                    for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
+                    
+                    // get all chars from this row entry
+                    std::vector<pq_t> from_same_l2_suffix;
+                    auto first_suffix = pq.top();
+                    while ((not pq.empty()) and (pq.top().first == first_suffix.first))
+                    {
+                        auto curr = pq.top();
+                        from_same_l2_suffix.push_back(curr);
+                        
+                        std::size_t arr_i_c = curr.second.first;  // ith array
+                        std::size_t arr_x_c = curr.second.second; // index in i-th array
+                        if (arr_i_c + 1 < v[arr_i_c].get().size())
+                        {
+                            pq.push({ v[arr_i_c].get()[arr_x_c + 1].first, { arr_i_c, arr_x_c + 1 } });
+                        }
                     }
-
-                    return output;
-
-                    hard_chars += (l_right - l_left) + 1;
+    
+                    if (from_same_l2_suffix.empty())
+                    {
+                        spdlog::error("Something went wrong.");
+                    }
+                    else if (from_same_l2_suffix.size() == 1)
+                    {
+                        // hard-easy suffix, we can fill in the character in pid
+                        auto pq_entry = from_same_l2_suffix[0];
+                        parse_int_type pid = pq_entry.second.second;
+                        uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
+                        dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - suffix_length];
+        
+                        out.insert(out.end(), freq, c);
+                        hard_easy_chars += freq;
+                    }
+                    else
+                    {
+                        // hard-hard suffix
+                        for (auto& pq_entry : from_same_l2_suffix)
+                        {
+                            uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
+                            out.insert(out.end(), freq, 'H');
+                            hard_hard_chars += freq;
+                        }
+                        
+                    }
                 }
                 
                 l_left = l_right + 1;
@@ -216,7 +226,7 @@ public:
             }
         }
     
-        spdlog::info("Easy: {} Hard {}", easy_chars, hard_chars);
+        spdlog::info("Easy: {} Hard {}", easy_chars, hard_hard_chars);
         return out;
     }
     
