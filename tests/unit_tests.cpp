@@ -206,10 +206,15 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
                       "ACCCCCGTCCTTTTCACCCCACGGGTGGTGTGTTTTTTTTGGGGGTGGGGCCCGCGGG";
     
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2);
-    std::vector<uint8_t> easy_chars = rpfbwt_algo.l1_bwt();
+    std::vector<uint8_t> easy_easy_and_hard_easy_chars = rpfbwt_algo.l1_bwt();
 
-    REQUIRE(not easy_chars.empty());
-    
+    REQUIRE(not easy_easy_and_hard_easy_chars.empty());
+    for (std::size_t bwt_i = 0; bwt_i < bwt.size(); bwt_i++)
+    {
+        bool all_good = (easy_easy_and_hard_easy_chars[bwt_i] == 'H') or (easy_easy_and_hard_easy_chars[bwt_i] == bwt[bwt_i]);
+        REQUIRE(all_good);
+    }
+
     size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
     size_t j = 0;
     while (i < rpfbwt_algo.l2_pfp.dict.saD.size())

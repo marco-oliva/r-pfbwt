@@ -176,48 +176,52 @@ public:
                     // make a priority queue and add elements to it
                     std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
-                    
-                    // get all chars from this row entry
-                    std::vector<pq_t> from_same_l2_suffix;
-                    auto first_suffix = pq.top();
-                    while ((not pq.empty()) and (pq.top().first == first_suffix.first))
+
+                    while (not pq.empty())
                     {
-                        auto curr = pq.top(); pq.pop();
-                        from_same_l2_suffix.push_back(curr);
-                        
-                        std::size_t arr_i_c = curr.second.first;  // ith array
-                        std::size_t arr_x_c = curr.second.second; // index in i-th array
-                        if (arr_i_c + 1 < v[arr_i_c].get().size())
+                        // get all chars from this row entry at l2
+                        std::vector<pq_t> from_same_l2_suffix;
+                        auto first_suffix = pq.top();
+                        while ((not pq.empty()) and (pq.top().first == first_suffix.first))
                         {
-                            pq.push({ v[arr_i_c].get()[arr_x_c + 1].first, { arr_i_c, arr_x_c + 1 } });
+                            auto curr = pq.top(); pq.pop();
+                            from_same_l2_suffix.push_back(curr);
+
+                            std::size_t arr_i_c = curr.second.first;  // ith array
+                            std::size_t arr_x_c = curr.second.second; // index in i-th array
+                            if (arr_x_c + 1 < v[arr_i_c].get().size())
+                            {
+                                pq.push({ v[arr_i_c].get()[arr_x_c + 1].first, { arr_i_c, arr_x_c + 1 } });
+                            }
                         }
-                    }
-    
-                    if (from_same_l2_suffix.empty())
-                    {
-                        spdlog::error("Something went wrong.");
-                    }
-                    else if (from_same_l2_suffix.size() == 1)
-                    {
-                        // hard-easy suffix, we can fill in the character in pid
-                        auto pq_entry = from_same_l2_suffix[0];
-                        parse_int_type pid = pids_v[pq_entry.second.first];
-                        uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                        dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
-                        out.insert(out.end(), freq, c);
-                        hard_easy_chars += freq;
-                    }
-                    else
-                    {
-                        // hard-hard suffix
-                        for (auto& pq_entry : from_same_l2_suffix)
+
+                        if (from_same_l2_suffix.empty())
                         {
+                            spdlog::error("Something went wrong.");
+                        }
+                        else if (from_same_l2_suffix.size() == 1)
+                        {
+                            // hard-easy suffix, we can fill in the character in pid
+                            auto pq_entry = from_same_l2_suffix[0];
+                            parse_int_type pid = pids_v[pq_entry.second.first];
                             uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                            out.insert(out.end(), freq, 'H');
-                            hard_hard_chars += freq;
+                            dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
+                            out.insert(out.end(), freq, c);
+                            hard_easy_chars += freq;
                         }
-                        
+                        else
+                        {
+                            // hard-hard suffix
+                            for (auto& pq_entry : from_same_l2_suffix)
+                            {
+                                uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
+                                out.insert(out.end(), freq, 'H');
+                                hard_hard_chars += freq;
+                            }
+
+                        }
                     }
+
                 }
                 
                 l_left = l_right + 1;
