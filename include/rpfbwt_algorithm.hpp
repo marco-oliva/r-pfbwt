@@ -235,7 +235,7 @@ public:
         spdlog::info("Easy: {} Hard-Easy: {} Hard-Hard: {}", easy_chars, hard_easy_chars, hard_hard_chars);
         std::ofstream out_stats(this->l1_prefix + ".stats.csv");
         out_stats << "easy,hard-easy,hard-hard" << std::endl;
-        out_stats << easy_chars << "," << hard_easy_chars << ","<< hard_hard_chars << "," << std::endl;
+        out_stats << easy_chars << "," << hard_easy_chars << ","<< hard_hard_chars << std::endl;
         return out;
     }
     
