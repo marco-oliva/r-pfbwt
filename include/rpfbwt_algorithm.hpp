@@ -8,6 +8,7 @@
 #define rpfbwt_algorithm_hpp
 
 #include <pfp/pfp.hpp>
+#include <rle/rle_string.hpp>
 
 namespace rpfbwt
 {
@@ -60,6 +61,7 @@ public: // TODO: back to private
 public:
     
     const std::size_t int_shift = 10;
+    std::string l1_prefix;
     
     rpfbwt_algo(std::vector<dict_l1_data_type>& l1_d_v,
                 std::vector<uint_t>& l1_freq_v,
@@ -68,11 +70,11 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
-    : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+    : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix("mem")
     { init_v_table(); }
     
     rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
-    : l1_d(l1_prefix, l1_w), l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+    : l1_d(l1_prefix, l1_w), l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix(l1_prefix)
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
@@ -83,7 +85,7 @@ public:
         init_v_table();
     }
     
-    std::vector<dict_l1_data_type> l1_bwt()
+    std::vector<dict_l1_data_type> l1_bwt(bool out_vector = false)
     {
         std::vector<dict_l1_data_type> out;
         
@@ -154,7 +156,7 @@ public:
                 if (chars.size() == 1) // easy-easy suffixes
                 {
                     // easy suffixes
-                    out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin()));
+                    if (out_vector) { out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin())); }
                     easy_chars += (l_right - l_left) + 1;
                 }
                 else // easy-hard and hard-hard suffixes
@@ -206,7 +208,7 @@ public:
                             parse_int_type pid = pids_v[pq_entry.second.first];
                             uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
                             dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
-                            out.insert(out.end(), freq, c);
+                            if (out_vector) { out.insert(out.end(), freq, c); }
                             hard_easy_chars += freq;
                         }
                         else
@@ -215,7 +217,7 @@ public:
                             for (auto& pq_entry : from_same_l2_suffix)
                             {
                                 uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                                out.insert(out.end(), freq, 'H');
+                                if (out_vector) { out.insert(out.end(), freq, 'H'); }
                                 hard_hard_chars += freq;
                             }
 
@@ -231,72 +233,13 @@ public:
         }
     
         spdlog::info("Easy: {} Hard-Easy: {} Hard-Hard: {}", easy_chars, hard_easy_chars, hard_hard_chars);
+        std::ofstream out_stats(this->l1_prefix + ".stats.csv");
+        out_stats << "easy,hard-easy,hard-hard" << std::endl;
+        out_stats << easy_chars << "," << hard_easy_chars << ","<< hard_hard_chars << "," << std::endl;
         return out;
     }
     
 };
-
-//
-//// A pair of pairs, first element is going to
-//// store value, second element index of array
-//// and third element index in the array.
-//    typedef pair<int, pair<int, int> > ppi;
-//
-//// This function takes an array of arrays as an
-//// argument and all arrays are assumed to be
-//// sorted. It merges them together and prints
-//// the final sorted output.
-//    vector<int> mergeKArrays(vector<vector<int> > arr)
-//    {
-//        vector<int> output;
-//
-//        // Create a min heap with k heap nodes. Every
-//        // heap node has first element of an array
-//        priority_queue<ppi, vector<ppi>, greater<ppi> > pq;
-//
-//        for (int i = 0; i < arr.size(); i++)
-//            pq.push({ arr[i][0], { i, 0 } });
-//
-//        // Now one by one get the minimum element
-//        // from min heap and replace it with next
-//        // element of its array
-//        while (pq.empty() == false) {
-//            ppi curr = pq.top();
-//            pq.pop();
-//
-//            // i ==> Array Number
-//            // j ==> Index in the array number
-//            int i = curr.second.first;
-//            int j = curr.second.second;
-//
-//            output.push_back(curr.first);
-//
-//            // The next element belongs to same array as
-//            // current.
-//            if (j + 1 < arr[i].size())
-//                pq.push({ arr[i][j + 1], { i, j + 1 } });
-//        }
-//
-//        return output;
-//    }
-//
-//// Driver program to test above functions
-//    int main()
-//    {
-//        // Change n at the top to change number
-//        // of elements in an array
-//        vector<vector<int> > arr{ { 2, 6, 12 },
-//                                  { 1, 9 },
-//                                  { 23, 34, 90, 2000 } };
-//
-//        vector<int> output = mergeKArrays(arr);
-//
-//        cout << "Merged array is " << endl;
-//        for (auto x : output)
-//            cout << x << " ";
-//
-//        return 0;
-//    }
 
 }
 
