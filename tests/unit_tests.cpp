@@ -91,7 +91,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         14, 17, 2, 9, 11, 4, 19, 13, 6, 16, 25, 3, 6, 16, 24, 16, 18, 8, 23, 15, 22, 2, 9,
         12, 19, 13, 7, 3, 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1
     };
-    
+    for (auto& p_id : parse_l1) { p_id += 1; }
     std::vector<uint_t> freq_l1(dict_l1_prep.size() + 1, 0);
     for (auto& p_id : parse_l1) { freq_l1[p_id] += 1; }
     
@@ -111,7 +111,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     { 2, 9, 12, 19, 13, 7, 3, 6, 16 },
     { 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1 },
     };
-    for (auto& v : dict_l2_prep) { for (auto& e : v) { e += int_shift; } }
+    for (auto& v : dict_l2_prep) { for (auto& e : v) { e += int_shift + 1; } }
     dict_l2_prep[0].insert(dict_l2_prep[0].begin(), 1, Dollar);
     dict_l2_prep[8].insert(dict_l2_prep[8].end(), w_l2, Dollar);
     std::sort(dict_l2_prep.begin(), dict_l2_prep.end());

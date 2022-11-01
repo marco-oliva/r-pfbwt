@@ -76,6 +76,7 @@ public:
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
+        l1_freq.push_back(0);
         l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
         delete[] occ;
         
@@ -173,7 +174,7 @@ public:
                     }
 
                     // make a priority queue and add elements to it
-                    std::priority_queue<pq_t, std::vector<pq_t>, std::less<>> pq;
+                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
                     
                     // get all chars from this row entry
@@ -181,7 +182,7 @@ public:
                     auto first_suffix = pq.top();
                     while ((not pq.empty()) and (pq.top().first == first_suffix.first))
                     {
-                        auto curr = pq.top();
+                        auto curr = pq.top(); pq.pop();
                         from_same_l2_suffix.push_back(curr);
                         
                         std::size_t arr_i_c = curr.second.first;  // ith array
@@ -200,10 +201,9 @@ public:
                     {
                         // hard-easy suffix, we can fill in the character in pid
                         auto pq_entry = from_same_l2_suffix[0];
-                        parse_int_type pid = pq_entry.second.second;
+                        parse_int_type pid = pids_v[pq_entry.second.first];
                         uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                        dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - suffix_length];
-        
+                        dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
                         out.insert(out.end(), freq, c);
                         hard_easy_chars += freq;
                     }
