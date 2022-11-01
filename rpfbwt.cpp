@@ -29,5 +29,5 @@ int main(int argc, char **argv)
     CLI11_PARSE(app, argc, argv);
 
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2);
-    std::vector<uint8_t> easy_easy_and_hard_easy_chars = rpfbwt_algo.l1_bwt();
+    rpfbwt_algo.l1_bwt(false);
 }
