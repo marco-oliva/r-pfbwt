@@ -8,7 +8,6 @@
 #define rpfbwt_algorithm_hpp
 
 #include <pfp/pfp.hpp>
-#include <rle/rle_string.hpp>
 
 namespace rpfbwt
 {
