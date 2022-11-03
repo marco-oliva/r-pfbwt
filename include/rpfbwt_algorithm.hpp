@@ -69,11 +69,14 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
-    : l1_d(l1_d_v, l1_w), l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix("mem")
+    : l1_d(l1_d_v, l1_w, true, false, true, true, false, true),
+      l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      l1_prefix("mem")
     { init_v_table(); }
     
     rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
-    : l1_d(l1_prefix, l1_w), l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix(l1_prefix)
+    : l1_d(l1_prefix, l1_w, true, true, true, true, true, true),
+      l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix(l1_prefix)
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
@@ -118,8 +121,6 @@ public:
                 std::set<parse_int_type> pids;
                 pids.insert(phrase);
                 
-                // use the RMQ data structure to find how many of the following suffixes are the same except for the terminator (so they're the same suffix but in different phrases)
-                // use the document array and the table of phrase frequencies to find the phrases frequencies and sum them up
                 j += l1_freq[phrase] - 1; // the next bits are 0s
                 i++;
             
