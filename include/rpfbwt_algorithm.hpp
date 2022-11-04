@@ -15,13 +15,32 @@ namespace rpfbwt
 template <typename dict_l1_data_type, typename parse_int_type = uint32_t>
 class rpfbwt_algo
 {
-
+public:
+    
+    class l2_colex_comp
+    {
+    private:
+        
+        const pfpds::dictionary<dict_l1_data_type>& l1_d;
+    
+    public:
+        
+        l2_colex_comp(const pfpds::dictionary<dict_l1_data_type>& l1_d_ref) : l1_d(l1_d_ref) {}
+        
+        bool operator()(const parse_int_type& l, const parse_int_type& r)
+        {
+            return l1_d.colex_id[l - 1] < l1_d.colex_id[r - 1];
+        }
+    };
+    
 public: // TODO: back to private
-
+    
+    std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
     
-    pfpds::pf_parsing<parse_int_type> l2_pfp;
+    l2_colex_comp l2_comp;
+    pfpds::pf_parsing<parse_int_type, l2_colex_comp> l2_pfp;
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
     
@@ -69,14 +88,14 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
-    : l1_d(l1_d_v, l1_w, true, false, true, true, false, true),
-      l1_freq(l1_freq_v), l2_pfp(l2_d_v, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      l1_prefix("mem")
+    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v), l1_prefix("mem"),
+      l2_comp(l1_d), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
     { init_v_table(); }
     
     rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
-    : l1_d(l1_prefix, l1_w, true, true, true, true, true, true),
-      l2_pfp(l1_prefix + ".parse", l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size), l1_prefix(l1_prefix)
+    : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true), l1_prefix(l1_prefix),
+      l2_comp(l1_d),
+      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
