@@ -93,13 +93,14 @@ public:
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v), l1_prefix("mem"),
-      l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+      l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
+      l2_pfp_v_table(l2_pfp.dict.alphabet_size)
     { init_v_table(); }
     
     rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true), l1_prefix(l1_prefix),
       l2_comp(l1_d, int_shift),
-      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
     {
         size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
@@ -242,15 +243,22 @@ public:
                             auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right - 1, l2_pfp.w_wt.size());
                             std::sort(points.begin(), points.end());
                             
-                            std::vector<dict_l1_data_type> test;
+                            std::vector<parse_int_type> test_pids;
+                            std::vector<uint8_t> test_cs;
                             for (auto& point : points)
                             {
-                                std::size_t colex_id = point.second;
+                                std::size_t colex_id = point.second - 1;
                                 std::size_t l2_pid = l2_pfp.dict.inv_colex_id[colex_id];
                                 parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
-                                l1_pid -= l2_pfp.shift;
-                                dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
-                                test.push_back(c);
+                                
+                                // check if l1_pid is among the ones we are looking for
+                                if (l1_pid >= l2_pfp.shift) { l1_pid -= l2_pfp.shift; }
+                                if (pids.contains(l1_pid))
+                                {
+                                    dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
+                                    test_pids.push_back(l1_pid);
+                                    test_cs.push_back(c);
+                                }
                             }
                             
                             // hard-hard suffix, we hit a row with more than one entry
