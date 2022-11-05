@@ -9,6 +9,9 @@
 
 #include <pfp/pfp.hpp>
 
+#undef max
+#include <rle/rle_string.hpp>
+
 namespace rpfbwt
 {
 
@@ -115,6 +118,7 @@ public:
     std::vector<dict_l1_data_type> l1_bwt(bool out_vector = false)
     {
         std::vector<dict_l1_data_type> out;
+        rle::RLEString::RLEncoder rle_out(l1_prefix + ".rlebwt");
         
         
         size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
@@ -183,6 +187,7 @@ public:
                 {
                     // easy suffixes
                     if (out_vector) { out.insert(out.end(), (l_right - l_left) + 1, *(chars.begin())); }
+                    rle_out(*(chars.begin()), (l_right - l_left) + 1);
                     easy_chars += (l_right - l_left) + 1;
                 }
                 else // easy-hard and hard-hard suffixes
@@ -235,6 +240,7 @@ public:
                             uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
                             dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
                             if (out_vector) { out.insert(out.end(), freq, c); }
+                            rle_out(c, freq);
                             hard_easy_chars += freq;
                         }
                         else
@@ -258,6 +264,7 @@ public:
                                 {
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
                                     if (out_vector) { hard_hard_chars_v[point.first - l2_M_entry.left] = c; }
+                                    rle_out(c, 1);
                                     hard_hard_chars += 1;
                                 }
                             }
@@ -279,6 +286,7 @@ public:
         std::ofstream out_stats(this->l1_prefix + ".stats.csv");
         out_stats << "easy,hard-easy,hard-hard" << std::endl;
         out_stats << easy_chars << "," << hard_easy_chars << ","<< hard_hard_chars << std::endl;
+        rle_out.close();
         return out;
     }
     
