@@ -98,6 +98,12 @@ public: // TODO: back to private
             else { std::cout << (l2_pfp.dict.d[l2_d_it]) - int_shift << " "; }
         }
         std::cout << std::endl;
+        
+        std::cout << "Colex ranges in L2:" << std::endl;
+        for (std::size_t l2_M_it = 0; l2_M_it < l2_pfp.M.size(); l2_M_it++)
+        {
+            std::cout << "(" << l2_pfp.M[l2_M_it].left << "," <<  l2_pfp.M[l2_M_it].right << ")" << std::endl;
+        }
     }
 
 public:
@@ -257,7 +263,7 @@ public:
                             std::size_t curr_l2_row = from_same_l2_suffix[0].first;
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
-                            auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right - 1, l2_pfp.w_wt.size());
+                            auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right, l2_pfp.w_wt.size());
                             std::sort(points.begin(), points.end());
                             
                             std::vector<parse_int_type> test_pids;
@@ -265,8 +271,8 @@ public:
                             std::vector<uint8_t> test_cs;
                             for (auto& point : points)
                             {
-                                std::size_t colex_id = point.second - 1;
-                                std::size_t l2_pid = l2_pfp.dict.inv_colex_id[colex_id];
+                                std::size_t colex_id = point.second;
+                                std::size_t l2_pid = l2_pfp.dict.colex_id[colex_id] + 1;
                                 test_l2_pids.push_back(l2_pid);
 
                                 parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
@@ -278,16 +284,18 @@ public:
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
                                     test_pids.push_back(l1_pid);
                                     test_cs.push_back(c);
+                                    if (out_vector) { out.push_back(c); }
+                                    hard_hard_chars += 1;
                                 }
                             }
                             
-                            // hard-hard suffix, we hit a row with more than one entry
-                            for (auto& pq_entry : from_same_l2_suffix)
-                            {
-                                uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                                if (out_vector) { out.insert(out.end(), freq, 'H'); }
-                                hard_hard_chars += freq;
-                            }
+//                            // hard-hard suffix, we hit a row with more than one entry
+//                            for (auto& pq_entry : from_same_l2_suffix)
+//                            {
+//                                uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
+//                                if (out_vector) { out.insert(out.end(), freq, 'H'); }
+//                                hard_hard_chars += freq;
+//                            }
 
                         }
                     }

@@ -112,7 +112,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     { 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1 } //
     };
     for (auto& v : dict_l2_prep) { for (auto& e : v) { e += int_shift + 1; } }
-    dict_l2_prep[0].insert(dict_l2_prep[0].begin(), w_l2, Dollar);
+    dict_l2_prep[0].insert(dict_l2_prep[0].begin(), 1, Dollar);
     dict_l2_prep[8].insert(dict_l2_prep[8].end(), w_l2, Dollar);
     std::sort(dict_l2_prep.begin(), dict_l2_prep.end());
     
@@ -141,7 +141,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     REQUIRE(not easy_easy_and_hard_easy_chars.empty());
     for (std::size_t bwt_i = 0; bwt_i < bwt.size(); bwt_i++)
     {
-        bool all_good = (easy_easy_and_hard_easy_chars[bwt_i] == 'H') or (easy_easy_and_hard_easy_chars[bwt_i] == bwt[bwt_i]);
+        bool all_good = (easy_easy_and_hard_easy_chars[bwt_i] == bwt[bwt_i]);
         REQUIRE(all_good);
     }
 
@@ -162,13 +162,15 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         {
             uint32_t suff = rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())];
             if (suff > int_shift) { suff -= int_shift; }
-            std::cout <<  suff << ",";
+            if (suff == 2) { std::cout << "$" << ","; }
+            else { std::cout << suff << ","; }
             std::size_t sit = 0;
             while (sit < suffix_length)
             {
                 uint32_t c = rpfbwt_algo.l2_pfp.dict.d[sn + sit];
                 if (c > int_shift) { c -= int_shift; }
-                std::cout << c << " ";
+                if (c == 2) { std::cout << "$" << " "; }
+                else { std::cout << c << " "; }
                 sit++;
             }
             std::cout << "," << rpfbwt_algo.l2_pfp.freq[phrase];
