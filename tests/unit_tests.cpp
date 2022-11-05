@@ -145,40 +145,40 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         REQUIRE(all_good);
     }
 
-    size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
-    size_t j = 0;
-    while (i < rpfbwt_algo.l2_pfp.dict.saD.size())
-    {
-        auto sn = rpfbwt_algo.l2_pfp.dict.saD[i];
-        // Check if the suffix has length at least w and is not the complete phrase.
-        auto phrase = rpfbwt_algo.l2_pfp.dict.daD[i] + 1;
-        assert(phrase > 0 && phrase < rpfbwt_algo.l2_pfp.freq.size()); // + 1 because daD is 0-based
-        size_t suffix_length = rpfbwt_algo.l2_pfp.dict.select_b_d(rpfbwt_algo.l2_pfp.dict.rank_b_d(sn + 1) + 1) - sn - 1;
-        if (rpfbwt_algo.l2_pfp.dict.b_d[sn] || suffix_length < rpfbwt_algo.l2_pfp.dict.w) // skip full phrases or suffixes shorter than w
-        {
-            ++i; // Skip
-        }
-        else
-        {
-            uint32_t suff = rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())];
-            if (suff > int_shift) { suff -= int_shift; }
-            if (suff == 2) { std::cout << "$" << ","; }
-            else { std::cout << suff << ","; }
-            std::size_t sit = 0;
-            while (sit < suffix_length)
-            {
-                uint32_t c = rpfbwt_algo.l2_pfp.dict.d[sn + sit];
-                if (c > int_shift) { c -= int_shift; }
-                if (c == 2) { std::cout << "$" << " "; }
-                else { std::cout << c << " "; }
-                sit++;
-            }
-            std::cout << "," << rpfbwt_algo.l2_pfp.freq[phrase];
-            std::cout << std::endl;
-    
-            ++i;
-        }
-    }
+//    size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
+//    size_t j = 0;
+//    while (i < rpfbwt_algo.l2_pfp.dict.saD.size())
+//    {
+//        auto sn = rpfbwt_algo.l2_pfp.dict.saD[i];
+//        // Check if the suffix has length at least w and is not the complete phrase.
+//        auto phrase = rpfbwt_algo.l2_pfp.dict.daD[i] + 1;
+//        assert(phrase > 0 && phrase < rpfbwt_algo.l2_pfp.freq.size()); // + 1 because daD is 0-based
+//        size_t suffix_length = rpfbwt_algo.l2_pfp.dict.select_b_d(rpfbwt_algo.l2_pfp.dict.rank_b_d(sn + 1) + 1) - sn - 1;
+//        if (rpfbwt_algo.l2_pfp.dict.b_d[sn] || suffix_length < rpfbwt_algo.l2_pfp.dict.w) // skip full phrases or suffixes shorter than w
+//        {
+//            ++i; // Skip
+//        }
+//        else
+//        {
+//            uint32_t suff = rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())];
+//            if (suff > int_shift) { suff -= int_shift; }
+//            if (suff == 2) { std::cout << "$" << ","; }
+//            else { std::cout << suff << ","; }
+//            std::size_t sit = 0;
+//            while (sit < suffix_length)
+//            {
+//                uint32_t c = rpfbwt_algo.l2_pfp.dict.d[sn + sit];
+//                if (c > int_shift) { c -= int_shift; }
+//                if (c == 2) { std::cout << "$" << " "; }
+//                else { std::cout << c << " "; }
+//                sit++;
+//            }
+//            std::cout << "," << rpfbwt_algo.l2_pfp.freq[phrase];
+//            std::cout << std::endl;
+//
+//            ++i;
+//        }
+//    }
 }
 
 //------------------------------------------------------------------------------

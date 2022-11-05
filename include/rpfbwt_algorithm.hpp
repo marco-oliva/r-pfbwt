@@ -264,16 +264,13 @@ public:
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
                             auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right, l2_pfp.w_wt.size());
-                            std::sort(points.begin(), points.end());
+                            std::vector<dict_l1_data_type> hard_hard_chars_v(points.size(), 0);
+                            //std::sort(points.begin(), points.end());
                             
-                            std::vector<parse_int_type> test_pids;
-                            std::vector<parse_int_type> test_l2_pids;
-                            std::vector<uint8_t> test_cs;
                             for (auto& point : points)
                             {
                                 std::size_t colex_id = point.second;
                                 std::size_t l2_pid = l2_pfp.dict.colex_id[colex_id] + 1;
-                                test_l2_pids.push_back(l2_pid);
 
                                 parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
                                 
@@ -282,21 +279,13 @@ public:
                                 if (pids.contains(l1_pid))
                                 {
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
-                                    test_pids.push_back(l1_pid);
-                                    test_cs.push_back(c);
-                                    if (out_vector) { out.push_back(c); }
+                                    if (out_vector) { hard_hard_chars_v[point.first - l2_M_entry.left] = c; }
                                     hard_hard_chars += 1;
                                 }
                             }
                             
-//                            // hard-hard suffix, we hit a row with more than one entry
-//                            for (auto& pq_entry : from_same_l2_suffix)
-//                            {
-//                                uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-//                                if (out_vector) { out.insert(out.end(), freq, 'H'); }
-//                                hard_hard_chars += freq;
-//                            }
-
+                            // output chars in order
+                            if (out_vector) {  for (auto& hc : hard_hard_chars_v) { if (hc != 0) { out.push_back(hc); } } }
                         }
                     }
 
