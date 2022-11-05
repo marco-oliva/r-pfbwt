@@ -82,28 +82,6 @@ public: // TODO: back to private
                 l2_pfp_v_table[c_count.first].emplace_back(v_element);
             }
         }
-
-//        std::cout << "BWT of P: ";
-//        for (std::size_t b_it = 0; b_it < l2_pfp.w_wt.size(); b_it++)
-//        {
-//            std::cout << l2_pfp.w_wt[b_it] << " ";
-//        }
-//        std::cout << std::endl;
-//
-//        std::cout << "L2 Dict: " << std::endl;
-//        for (std::size_t l2_d_it = 0; l2_d_it < l2_pfp.dict.d.size(); l2_d_it++)
-//        {
-//            if (l2_pfp.dict.d[l2_d_it] == 1) { std::cout << std::endl; }
-//            else if (l2_pfp.dict.d[l2_d_it] == 2) { std::cout << '$' << " "; }
-//            else { std::cout << (l2_pfp.dict.d[l2_d_it]) - int_shift << " "; }
-//        }
-//        std::cout << std::endl;
-//
-//        std::cout << "Colex ranges in L2:" << std::endl;
-//        for (std::size_t l2_M_it = 0; l2_M_it < l2_pfp.M.size(); l2_M_it++)
-//        {
-//            std::cout << "(" << l2_pfp.M[l2_M_it].left << "," <<  l2_pfp.M[l2_M_it].right << ")" << std::endl;
-//        }
     }
 
 public:
@@ -266,7 +244,6 @@ public:
                             
                             auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right, l2_pfp.w_wt.size());
                             std::vector<dict_l1_data_type> hard_hard_chars_v(points.size(), 0);
-                            //std::sort(points.begin(), points.end());
                             
                             for (auto& point : points)
                             {
