@@ -101,18 +101,18 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
     uint32_t int_shift = 10;
     std::vector<std::vector<uint32_t>> dict_l2_prep =
     {
-    { 0, 6, 16}, // 1
-    { 6, 16, 24, 10, 8, 19, 15, 22 , 3, 6, 16 }, // 2
-    { 6, 16, 24, 12, 23, 14, 21, 2, 9 }, // 3
-    { 2, 9, 16, 18, 4, 19, 14, 17, 2, 9 }, // 4
-    { 2, 9, 11, 4, 19, 13,  6, 16 }, // 5
-    { 6, 16, 25, 3, 6, 16 }, // 6
-    { 6, 16, 24, 16, 18, 8, 23, 15, 22, 2, 9 }, // 7
-    { 2, 9, 12, 19, 13, 7, 3, 6, 16 }, // 9
-    { 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1 }, // 10
+    { 0, 6, 16}, // -
+    { 6, 16, 24, 10, 8, 19, 15, 22 , 3, 6, 16 }, // -
+    { 6, 16, 24, 12, 23, 14, 21, 2, 9 }, //
+    { 2, 9, 16, 18, 4, 19, 14, 17, 2, 9 }, //
+    { 2, 9, 11, 4, 19, 13,  6, 16 }, // -
+    { 6, 16, 25, 3, 6, 16 }, //
+    { 6, 16, 24, 16, 18, 8, 23, 15, 22, 2, 9 }, //
+    { 2, 9, 12, 19, 13, 7, 3, 6, 16 }, // -
+    { 6, 16, 24, 16, 20, 8, 23, 13, 7, 3, 5, 11, 4, 19, 15, 22, 1 } //
     };
     for (auto& v : dict_l2_prep) { for (auto& e : v) { e += int_shift + 1; } }
-    dict_l2_prep[0].insert(dict_l2_prep[0].begin(), 1, Dollar);
+    dict_l2_prep[0].insert(dict_l2_prep[0].begin(), w_l2, Dollar);
     dict_l2_prep[8].insert(dict_l2_prep[8].end(), w_l2, Dollar);
     std::sort(dict_l2_prep.begin(), dict_l2_prep.end());
     
@@ -162,7 +162,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
         {
             uint32_t suff = rpfbwt_algo.l2_pfp.dict.d[((sn + rpfbwt_algo.l2_pfp.dict.d.size() - 1) % rpfbwt_algo.l2_pfp.dict.d.size())];
             if (suff > int_shift) { suff -= int_shift; }
-            std::cout <<  suff << "\t-\t";
+            std::cout <<  suff << ",";
             std::size_t sit = 0;
             while (sit < suffix_length)
             {
@@ -171,7 +171,7 @@ TEST_CASE( "pfp<uint8_t> from example", "PFP on example" )
                 std::cout << c << " ";
                 sit++;
             }
-            std::cout << " - " << rpfbwt_algo.l2_pfp.freq[phrase];
+            std::cout << "," << rpfbwt_algo.l2_pfp.freq[phrase];
             std::cout << std::endl;
     
             ++i;

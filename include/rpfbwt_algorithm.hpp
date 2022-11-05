@@ -31,9 +31,10 @@ public:
         
         bool operator()(parse_int_type l, parse_int_type r)
         {
-            if (l >= int_shift) { l -= int_shift; }
-            if (r >= int_shift) { r -= int_shift; }
-            return l1_d.colex_id[l - 1] < l1_d.colex_id[r - 1];
+            assert(l != r);
+            if (l < int_shift) { return true; }
+            if (r < int_shift) { return false; }
+            return l1_d.colex_id[l - int_shift - 1] < l1_d.colex_id[r - int_shift - 1];
         }
     };
     
@@ -81,6 +82,22 @@ public: // TODO: back to private
                 l2_pfp_v_table[c_count.first].emplace_back(v_element);
             }
         }
+
+        std::cout << "BWT of P: ";
+        for (std::size_t b_it = 0; b_it < l2_pfp.w_wt.size(); b_it++)
+        {
+            std::cout << l2_pfp.w_wt[b_it] << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "L2 Dict: " << std::endl;
+        for (std::size_t l2_d_it = 0; l2_d_it < l2_pfp.dict.d.size(); l2_d_it++)
+        {
+            if (l2_pfp.dict.d[l2_d_it] == 1) { std::cout << std::endl; }
+            else if (l2_pfp.dict.d[l2_d_it] == 2) { std::cout << '$' << " "; }
+            else { std::cout << (l2_pfp.dict.d[l2_d_it]) - int_shift << " "; }
+        }
+        std::cout << std::endl;
     }
 
 public:
@@ -244,11 +261,14 @@ public:
                             std::sort(points.begin(), points.end());
                             
                             std::vector<parse_int_type> test_pids;
+                            std::vector<parse_int_type> test_l2_pids;
                             std::vector<uint8_t> test_cs;
                             for (auto& point : points)
                             {
                                 std::size_t colex_id = point.second - 1;
                                 std::size_t l2_pid = l2_pfp.dict.inv_colex_id[colex_id];
+                                test_l2_pids.push_back(l2_pid);
+
                                 parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
                                 
                                 // check if l1_pid is among the ones we are looking for
