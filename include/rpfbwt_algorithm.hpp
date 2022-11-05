@@ -38,7 +38,7 @@ public:
         }
     };
     
-public: // TODO: back to private
+private: // TODO: back to private
     
     const std::size_t int_shift = 10;
     std::string l1_prefix;
