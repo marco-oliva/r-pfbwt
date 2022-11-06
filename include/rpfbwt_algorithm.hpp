@@ -103,6 +103,8 @@ private:
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>>
     compute_chunks(std::size_t chunk_size)
     {
+        spdlog::info("Computing chunks for parallel execution.");
+        
         std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> out;
         
         // Go through the suffixes of D and compute chunks
@@ -196,6 +198,7 @@ private:
     
     bool clear_L1_unused_data_structures()
     {
+        spdlog::info("Removing unused L1 data structures.");
         l1_d.inv_colex_id.clear();
         l1_d.colex_daD.clear();
         l1_d.isaD.clear();
@@ -206,6 +209,7 @@ private:
     
     bool clear_L2_unused_data_structures()
     {
+        spdlog::info("Removing unused L2 data structures.");
         l2_pfp.dict.inv_colex_id.clear();
         l2_pfp.dict.colex_daD.clear();
         l2_pfp.dict.lcpD.clear();
