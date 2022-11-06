@@ -52,9 +52,11 @@ private:
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
+    bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
     pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp;
+    bool l2_cleared = false;
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
     
@@ -190,7 +192,34 @@ private:
         
         return out;
     }
-
+    
+    
+    bool clear_L1_unused_data_structures()
+    {
+        l1_d.inv_colex_id.clear();
+        l1_d.colex_daD.clear();
+        l1_d.isaD.clear();
+//        l1_d.rmq_colex_daD.clear();
+//        l1_d.rMq_colex_daD.clear();
+        return true;
+    }
+    
+    bool clear_L2_unused_data_structures()
+    {
+        l2_pfp.dict.inv_colex_id.clear();
+        l2_pfp.dict.colex_daD.clear();
+        l2_pfp.dict.lcpD.clear();
+        l2_pfp.dict.daD.clear();
+        l2_pfp.dict.isaD.clear();
+//        l2_pfp.dict.rmq_colex_daD.clear();
+//        l2_pfp.dict.rMq_colex_daD.clear();
+        l2_pfp.pars.isaP.clear();
+        l2_pfp.pars.saP.clear();
+        l2_pfp.pars.lcpP.clear();
+//        l2_pfp.pars.rmq_lcp_P.clear();
+        return true;
+    }
+    
 public:
     
     rpfbwt_algo(std::vector<dict_l1_data_type>& l1_d_v,
@@ -202,8 +231,10 @@ public:
                 std::size_t l2_w,
                 std::size_t bwt_chunk_size = chunk_size_default)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v),
+      l1_cleared(clear_L1_unused_data_structures()),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
+      l2_cleared(clear_L2_unused_data_structures()),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
@@ -212,8 +243,10 @@ public:
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix)),
+      l1_cleared(clear_L1_unused_data_structures()),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      l2_cleared(clear_L2_unused_data_structures()),
       chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
     {
         init_v_table();
@@ -346,6 +379,7 @@ public:
                         }
                         else
                         {
+                            // hard-hard suffix, need to look at the grid in L2
                             std::size_t curr_l2_row = from_same_l2_suffix[0].first;
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
