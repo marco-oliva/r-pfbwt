@@ -169,7 +169,18 @@ private:
         
         if (out.empty()) { out.emplace_back(1, l1_d.saD.size(), 0, 0); }
         return out;
+    }
+    
+    std::vector<uint_t> read_l1_freq(std::string& l1_prefix)
+    {
+        std::vector<uint_t> out;
+        std::size_t d1_words; uint_t * occ;
+        pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
+        out.push_back(0);
+        out.insert(out.end(),occ, occ + d1_words);
+        delete[] occ;
         
+        return out;
     }
 
 public:
@@ -190,16 +201,11 @@ public:
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunk_size = chunk_size_default)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true), l1_prefix(l1_prefix),
+      l1_freq(read_l1_freq(l1_prefix)),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(l1_prefix, chunks.size())
     {
-        std::size_t d1_words; uint_t * occ;
-        pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
-        l1_freq.push_back(0);
-        l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
-        delete[] occ;
-        
         init_v_table();
     }
     

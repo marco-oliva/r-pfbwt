@@ -2,12 +2,8 @@
 // Created by marco on 10/21/22.
 //
 
-#include <rle/rle_string.hpp>
-#include <pfp/pfp.hpp>
-
 #include <CLI/CLI.hpp>
 #include <version.hpp>
-#include <spdlog/spdlog.h>
 
 #include <rpfbwt_algorithm.hpp>
 
