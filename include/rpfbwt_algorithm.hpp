@@ -239,7 +239,7 @@ public:
     { init_v_table(); }
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunk_size = chunk_size_default)
-    : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true),
+    : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix)),
       l1_cleared(clear_L1_unused_data_structures()),
