@@ -59,9 +59,8 @@ private:
     bool l2_cleared = false;
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
-    
-    static const std::size_t chunk_size_default = 50;
-    std::size_t chunk_size;
+
+    static constexpr std::size_t default_num_of_chunks = 1;
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> chunks;
     
     rle::RLEString::RLEncoderMerger rle_chunks;
@@ -101,9 +100,26 @@ private:
     // Computes ranges for parallel computation
     // suffix start, suffix end, this_left, this_row
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>>
-    compute_chunks(std::size_t chunk_size)
+    compute_chunks(std::size_t num_of_chunks)
     {
         spdlog::info("Computing chunks for parallel execution.");
+        
+        // Compute total input size
+        std::size_t prev_phrase_end = 0;
+        std::size_t curr_phrase = 1;
+        std::size_t tot_length = 0;
+        for (std::size_t d_it = 0; d_it < l1_d.d.size(); d_it++)
+        {
+            if (l1_d.d[d_it] == EndOfWord)
+            {
+                tot_length += (d_it - prev_phrase_end) * l1_freq[curr_phrase];
+                
+                curr_phrase++;
+                prev_phrase_end = d_it;
+            }
+        }
+        
+        std::size_t chunk_size = (num_of_chunks > 1) ? (tot_length / (num_of_chunks - 1)) : tot_length + 1;
         
         std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> out;
         
@@ -228,17 +244,17 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w,
-                std::size_t bwt_chunk_size = chunk_size_default)
+                std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
       l2_cleared(clear_L2_unused_data_structures()),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
+      chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
-    rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunk_size = chunk_size_default)
+    rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix)),
@@ -246,7 +262,7 @@ public:
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       l2_cleared(clear_L2_unused_data_structures()),
-      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
+      chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
     {
         init_v_table();
     }

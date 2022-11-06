@@ -21,7 +21,6 @@ int main(int argc, char **argv)
     app.add_option("--l1-prefix", l1_prefix, "Level 1 Prefix.")->configurable()->required();
     app.add_option("--w1", w1, "Level 1 window length.")->configurable()->required();
     app.add_option("--w2", w2, "Level 2 window length.")->configurable()->required();
-    app.add_option("--chunk-size", chunk_size, "BWT chunk size to be computed in parallel, in MB")->configurable()->required();
     app.add_option("-t, --threads", threads, "Number of threads.")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Temporary files directory.")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag_callback("--version",rpfbwt::Version::print,"Version number.");
@@ -36,6 +35,6 @@ int main(int argc, char **argv)
     // Set threads accordingly to configuration
     omp_set_num_threads(threads);
     
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, (chunk_size * 1000000));
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, threads * 5);
     rpfbwt_algo.l1_bwt_parallel();
 }
