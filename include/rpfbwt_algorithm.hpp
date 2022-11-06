@@ -168,7 +168,9 @@ private:
             }
         }
         
+        
         if (out.empty()) { out.emplace_back(1, l1_d.saD.size(), 0, 0); }
+        spdlog::info("BWT ranges divided in {} chunks.", out.size());
         return out;
     }
     
