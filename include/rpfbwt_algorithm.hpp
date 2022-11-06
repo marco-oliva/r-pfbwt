@@ -245,7 +245,7 @@ public:
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w,
                 std::size_t bwt_chunks = default_num_of_chunks)
-    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v),
+    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
@@ -255,7 +255,7 @@ public:
     { init_v_table(); }
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
-    : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true),
+    : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix)),
       l1_cleared(clear_L1_unused_data_structures()),
