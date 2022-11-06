@@ -47,6 +47,7 @@ private:
     
     const std::size_t int_shift = 10;
     std::string l1_prefix;
+    std::string out_rle_name;
     
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
@@ -193,18 +194,20 @@ public:
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w,
                 std::size_t bwt_chunk_size = chunk_size_default)
-    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v), l1_prefix("mem"),
+    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v),
+      l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(l1_prefix, chunks.size())
+      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunk_size = chunk_size_default)
-    : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true), l1_prefix(l1_prefix),
+    : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true),
+      l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix)),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(l1_prefix, chunks.size())
+      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(out_rle_name, chunks.size())
     {
         init_v_table();
     }
