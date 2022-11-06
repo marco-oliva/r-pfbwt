@@ -7,6 +7,8 @@
 #ifndef rpfbwt_algorithm_hpp
 #define rpfbwt_algorithm_hpp
 
+#include <omp.h>
+
 #include <pfp/pfp.hpp>
 
 #undef max
@@ -55,6 +57,12 @@ private:
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
     
+    static const std::size_t chunk_size_default = 50;
+    std::size_t chunk_size;
+    std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> chunks;
+    
+    rle::RLEString::RLEncoderMerger rle_chunks;
+    
     void init_v_table()
     {
         // now build V
@@ -86,6 +94,83 @@ private:
             }
         }
     }
+    
+    // Computes ranges for parallel computation
+    // suffix start, suffix end, this_left, this_row
+    std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>>
+    compute_chunks(std::size_t chunk_size)
+    {
+        std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> out;
+        
+        // Go through the suffixes of D and compute chunks
+        std::size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
+        
+        std::size_t l_left  = 0;
+        std::size_t l_right = 0;
+        std::size_t chunk_suffix_start = i;
+        std::size_t chunk_start = l_left;
+        std::size_t chunk_row_start = 0;
+        std::size_t table_row = 0;
+        while (i < l1_d.saD.size())
+        {
+            auto sn = l1_d.saD[i];
+            // Check if the suffix has length at least w and is not the complete phrase.
+            auto phrase = l1_d.daD[i] + 1;
+            assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
+            uint_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
+            {
+                ++i; // Skip
+            }
+            else
+            {
+                i++;
+                l_right += l1_freq[phrase] - 1;
+                
+                if (i < l1_d.saD.size())
+                {
+                    auto new_sn = l1_d.saD[i];
+                    auto new_phrase = l1_d.daD[i] + 1;
+                    assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                    uint_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                    
+                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
+                    {
+                        ++i;
+                        l_right += l1_freq[new_phrase];
+                        
+                        if (i < l1_d.saD.size())
+                        {
+                            new_sn = l1_d.saD[i];
+                            new_phrase = l1_d.daD[i] + 1;
+                            assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                            new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                        }
+                    }
+                    
+                }
+                
+                if (l_right - chunk_start > chunk_size)
+                {
+                    // store SA_d range for this chunk
+                    out.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
+                    
+                    // prepare for next iteration
+                    chunk_suffix_start = i;
+                    chunk_start = l_right + 1;
+                    chunk_row_start = table_row + 1;
+                }
+                
+                l_left = l_right + 1;
+                l_right = l_left;
+                table_row++;
+            }
+        }
+        
+        if (out.empty()) { out.emplace_back(1, l1_d.saD.size(), 0, 0); }
+        return out;
+        
+    }
 
 public:
     
@@ -95,18 +180,21 @@ public:
                 std::vector<parse_int_type>& l2_d_v,
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
-                std::size_t l2_w)
+                std::size_t l2_w,
+                std::size_t bwt_chunk_size = chunk_size_default)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true), l1_freq(l1_freq_v), l1_prefix("mem"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
-      l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+      l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(l1_prefix, chunks.size())
     { init_v_table(); }
     
-    rpfbwt_algo(const std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w)
+    rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunk_size = chunk_size_default)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, true, true), l1_prefix(l1_prefix),
       l2_comp(l1_d, int_shift),
-      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size)
+      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      chunk_size(bwt_chunk_size), chunks(compute_chunks(chunk_size)), rle_chunks(l1_prefix, chunks.size())
     {
-        size_t d1_words; uint_t * occ;
+        std::size_t d1_words; uint_t * occ;
         pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
         l1_freq.push_back(0);
         l1_freq.insert(l1_freq.end(),occ, occ + d1_words);
@@ -115,30 +203,30 @@ public:
         init_v_table();
     }
     
-    std::vector<dict_l1_data_type> l1_bwt(bool out_vector = false)
+    std::vector<dict_l1_data_type> l1_bwt_chunk(
+        std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> chunk,
+        rle::RLEString::RLEncoder& rle_out,
+        bool out_vector = false)
     {
         std::vector<dict_l1_data_type> out;
-        rle::RLEString::RLEncoder rle_out(l1_prefix + ".rlebwt");
         
-        
-        size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
-        size_t j = 0;
+        std::size_t i = std::get<0>(chunk);
     
-        size_t l_left  = 0;
-        size_t l_right = 0;
+        std::size_t l_left  = std::get<2>(chunk);
+        std::size_t l_right = l_left;
         std::size_t easy_chars = 0;
         std::size_t hard_easy_chars = 0;
         std::size_t hard_hard_chars = 0;
-        std::size_t row = 0;
-        while (i < l1_d.saD.size())
+        std::size_t row = std::get<3>(chunk);
+        while (i < std::get<1>(chunk))
         {
-            size_t left = i;
+            std::size_t left = i;
         
             auto sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
             assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
-            size_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            uint_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
@@ -151,9 +239,7 @@ public:
                 std::set<parse_int_type> pids;
                 pids.insert(phrase);
                 
-                j += l1_freq[phrase] - 1; // the next bits are 0s
                 i++;
-            
                 l_right += l1_freq[phrase] - 1;
             
                 if (i < l1_d.saD.size())
@@ -161,13 +247,12 @@ public:
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
-                    size_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                    uint_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
                         chars.insert(l1_d.d[((new_sn + l1_d.d.size() - 1) % l1_d.d.size())]);
                         pids.insert(new_phrase);
-                        j += l1_freq[new_phrase];
                         ++i;
                     
                         l_right += l1_freq[new_phrase];
@@ -281,15 +366,33 @@ public:
                 row++;
             }
         }
-    
-        spdlog::info("Easy: {} Hard-Easy: {} Hard-Hard: {}", easy_chars, hard_easy_chars, hard_hard_chars);
-        std::ofstream out_stats(this->l1_prefix + ".stats.csv");
-        out_stats << "easy,hard-easy,hard-hard" << std::endl;
-        out_stats << easy_chars << "," << hard_easy_chars << ","<< hard_hard_chars << std::endl;
-        rle_out.close();
+
         return out;
     }
     
+    std::vector<dict_l1_data_type> l1_bwt(bool out_vector = false)
+    {
+        std::vector<dict_l1_data_type> out;
+        
+        for (std::size_t i = 0; i < chunks.size(); i++)
+        {
+            std::vector<dict_l1_data_type> bwt_chunk = l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i), out_vector);
+            if (not bwt_chunk.empty()) { out.insert(out.end(), bwt_chunk.begin(), bwt_chunk.end()); }
+            
+        }
+        
+        return out;
+    }
+    
+    
+    void l1_bwt_parallel()
+    {
+        #pragma omp parallel for schedule(static) default(none)
+        for (std::size_t i = 0; i < chunks.size(); i++)
+        {
+            l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
+        }
+    }
 };
 
 }
