@@ -440,6 +440,7 @@ public:
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
             l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
+            spdlog::info("Chunk {}/{} completed", i, chunks.size());
         }
     }
 };
