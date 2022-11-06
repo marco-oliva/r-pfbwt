@@ -202,8 +202,6 @@ private:
         l1_d.inv_colex_id.clear();
         l1_d.colex_daD.clear();
         l1_d.isaD.clear();
-//        l1_d.rmq_colex_daD.clear();
-//        l1_d.rMq_colex_daD.clear();
         return true;
     }
     
@@ -215,12 +213,9 @@ private:
         l2_pfp.dict.lcpD.clear();
         l2_pfp.dict.daD.clear();
         l2_pfp.dict.isaD.clear();
-//        l2_pfp.dict.rmq_colex_daD.clear();
-//        l2_pfp.dict.rMq_colex_daD.clear();
         l2_pfp.pars.isaP.clear();
         l2_pfp.pars.saP.clear();
         l2_pfp.pars.lcpP.clear();
-//        l2_pfp.pars.rmq_lcp_P.clear();
         return true;
     }
     
