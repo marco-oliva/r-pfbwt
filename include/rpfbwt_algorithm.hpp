@@ -248,7 +248,7 @@ public:
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
-      l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift),
+      l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
       l2_cleared(clear_L2_unused_data_structures()),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
@@ -260,7 +260,8 @@ public:
       l1_freq(read_l1_freq(l1_prefix)),
       l1_cleared(clear_L1_unused_data_structures()),
       l2_comp(l1_d, int_shift),
-      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift), l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
+      l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
     {
@@ -398,29 +399,45 @@ public:
                             std::size_t curr_l2_row = from_same_l2_suffix[0].first;
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
-                            auto points = l2_pfp.w_wt.range_search_2d(l2_M_entry.left, l2_M_entry.right, l2_pfp.w_wt.size());
-                            std::vector<dict_l1_data_type> hard_hard_chars_v(points.size(), 0);
-                            
-                            for (auto& point : points)
+                            // get inverted lists of corresponding phrases
+                            std::vector<std::reference_wrapper<std::vector<uint_t>>> ilists;
+                            for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it ++)
                             {
-                                std::size_t colex_id = point.second;
-                                std::size_t l2_pid = l2_pfp.dict.colex_id[colex_id] + 1;
-
+                                ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pfp.dict.colex_id[c_it] + 1]));
+                            }
+    
+                            // make a priority queue from the inverted lists
+                            typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
+                            std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                            for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
+                            
+                            // now pop elements from the priority queue and write out the corresponding character
+                            while (not ilist_pq.empty())
+                            {
+                                auto curr = ilist_pq.top(); ilist_pq.pop();
+    
+                                std::size_t colex_rank = curr.second.first + l2_M_entry.left;
+                                std::size_t l2_pid = l2_pfp.dict.colex_id[colex_rank] + 1;
+    
                                 parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
-                                
                                 // check if l1_pid is among the ones we are looking for
                                 if (l1_pid >= l2_pfp.shift) { l1_pid -= l2_pfp.shift; }
                                 if (pids.contains(l1_pid))
                                 {
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
-                                    if (out_vector) { hard_hard_chars_v[point.first - l2_M_entry.left] = c; }
+                                    if (out_vector) {out.push_back(c); }
                                     rle_out(c, 1);
                                     hard_hard_chars += 1;
                                 }
+                                
+                                // keep iterating
+                                std::size_t arr_i_c_il = curr.second.first;  // ith array
+                                std::size_t arr_x_c_il = curr.second.second; // index in i-th array
+                                if (arr_x_c_il + 1 < ilists[arr_i_c_il].get().size())
+                                {
+                                    ilist_pq.push({ ilists[arr_i_c_il].get()[arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
+                                }
                             }
-                            
-                            // output chars in order
-                            if (out_vector) {  for (auto& hc : hard_hard_chars_v) { if (hc != 0) { out.push_back(hc); } } }
                         }
                     }
 
