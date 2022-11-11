@@ -188,8 +188,13 @@ private:
             }
         }
         
+        // Add last_chunk
+        if ((out.empty()) or (std::get<1>(out.back()) < i))
+        {
+            // store SA_d range for last chunk
+            out.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
+        }
         
-        if (out.empty()) { out.emplace_back(1, l1_d.saD.size(), 0, 0); }
         spdlog::info("BWT ranges divided in {} chunks.", out.size());
         if (out.size() > 500)
         {
@@ -460,7 +465,7 @@ public:
         {
             std::vector<dict_l1_data_type> bwt_chunk = l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i), out_vector);
             if (not bwt_chunk.empty()) { out.insert(out.end(), bwt_chunk.begin(), bwt_chunk.end()); }
-            
+            spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
         }
         
         return out;
