@@ -480,6 +480,8 @@ public:
             l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
             spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
         }
+        
+        rle_chunks.close();
     }
 };
 
