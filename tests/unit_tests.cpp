@@ -224,31 +224,6 @@ TEST_CASE( "RLBWT for yeast", "PFP on yeast.fasta" )
         if (not all_good) { miss_match = i; break; }
     }
     REQUIRE(all_good);
-    
-    // Now check that the rlebwt from disk is correct with sdsl
-    std::vector<char> yeast;
-    read_fasta_file(std::string(testfiles_dir + "/yeast.fasta").c_str(), yeast, w_l1);
-    
-    uint8_t num_bytes = 1;
-    sdsl::csa_wt<> csa;
-    yeast.insert(yeast.begin(), w_l1 - 1, 3);
-    yeast.push_back(0);
-    sdsl::construct_im(csa, static_cast<const char *>(&yeast[0]), num_bytes);
-    std::vector<char> sdsl_bwt;
-    for (std::size_t i = 0; i < csa.size(); i++)
-    {
-        std::size_t adj_i = i + ((yeast.size()) - w_l1 + 1) % (yeast.size());
-        sdsl_bwt.push_back(csa.bwt[adj_i]);
-    }
-    
-    all_good = true; miss_match = 0;
-    for (std::size_t i = 0; i < rle_bwt.size(); i++)
-    {
-        std::size_t adj_i = i + (yeast.size() - w_l1 + 1) % (yeast.size());
-        all_good = all_good and (sdsl_bwt[adj_i] == rle_bwt[i]);
-        //if (not all_good) { miss_match = i; break; }
-    }
-    REQUIRE(all_good);
 }
 
 
