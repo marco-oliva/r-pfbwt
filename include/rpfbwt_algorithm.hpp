@@ -290,8 +290,6 @@ public:
         std::size_t row = std::get<3>(chunk);
         while (i < std::get<1>(chunk))
         {
-            std::size_t left = i;
-        
             auto sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
@@ -347,9 +345,11 @@ public:
                 }
                 else // easy-hard and hard-hard suffixes
                 {
+                    assert(l_right - l_left > 0);
+                    
                     // shorthands
                     typedef std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>> ve_t; // (row in which that char appears, number of times per row)
-                    typedef std::size_t ve_pq_t; // for the priprity queue the row is enough, the other ingo can be retrieved from ve_t
+                    typedef std::size_t ve_pq_t; // for the priority queue the row is enough, the other ingo can be retrieved from ve_t
                     typedef std::pair<ve_pq_t, std::pair<std::size_t, std::size_t>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
                     
                     // go in second level and iterate trough list of positions for the meta-phrases we are interested into
