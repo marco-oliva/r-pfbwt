@@ -229,8 +229,7 @@ TEST_CASE( "Compare with PFP-DS", "PFP on yeast.2.fasta" )
     std::size_t mismatch = 0;
     
     std::string yeast_pfp_path = testfiles_dir + "/yeast.2.fasta";
-    std::size_t blocks = 5;
-    std::size_t w_l1 = 10, w_l2 = 5;
+    std::size_t w_l1 = 10, w_l2 = 10;
     
     // Build PFP-DS and bwt
     std::less<char> char_comp;
@@ -249,8 +248,16 @@ TEST_CASE( "Compare with PFP-DS", "PFP on yeast.2.fasta" )
     }
     
     // Build the bwt
-    rpfbwt::rpfbwt_algo<char> rpfbwt_algo_n_chunks_p(yeast_pfp_path, w_l1, w_l2, blocks);
-    std::vector<char> test_bwt = rpfbwt_algo_n_chunks_p.l1_bwt(true);
+    rpfbwt::rpfbwt_algo<char> rpfbwt_algo(yeast_pfp_path, w_l1, w_l2, 1);
+    std::vector<char> test_bwt = rpfbwt_algo.l1_bwt(true);
+    
+//    std::ofstream test_of(testfiles_dir + "/test_bwt.txt");
+//    for (std::size_t i = 0; i < test_bwt.size(); i++) { test_of << test_bwt[i]; if (i % 200 == 0) {test_of << std::endl; } }
+//    test_of.close();
+//
+//    std::ofstream pfpds_of(testfiles_dir + "/pfpds_bwt.txt");
+//    for (std::size_t i = 0; i < pfpds_bwt.size(); i++) { pfpds_of << pfpds_bwt[i]; if (i % 200 == 0) {pfpds_of << std::endl; } }
+//    pfpds_of.close();
     
     REQUIRE(pfpds_bwt.size() == test_bwt.size());
     all_good = true; mismatch = 0;

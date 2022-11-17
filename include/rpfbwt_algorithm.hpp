@@ -79,7 +79,7 @@ private:
                 std::size_t phrase_start = l2_pfp.dict.select_b_d(phrase + 1);
                 std::size_t phrase_length = l2_pfp.dict.length_of_phrase(phrase + 1);
                 parse_int_type c = l2_pfp.dict.d[phrase_start + (phrase_length - m.len - 1)];
-                if (c > int_shift) { c -= int_shift; }
+                // if (c > int_shift) { c -= int_shift; }
             
                 if (phrase_counts.empty() or phrase_counts.back().first != c)
                 {
@@ -188,7 +188,7 @@ private:
             }
         }
         
-        // Add last_chunk
+        // add last_chunk
         if ((out.empty()) or (std::get<1>(out.back()) < i))
         {
             // store SA_d range for last chunk
@@ -269,9 +269,7 @@ public:
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
-    {
-        init_v_table();
-    }
+    { init_v_table(); }
     
     std::vector<dict_l1_data_type> l1_bwt_chunk(
         std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> chunk,
@@ -301,6 +299,14 @@ public:
             }
             else
             {
+                /// --- remove from here
+                bool test = false;
+                if (l_left == 714524)
+                {
+                    test = true;
+                }
+                /// --- to here
+                
                 std::set<dict_l1_data_type> chars;
                 chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
     
@@ -346,6 +352,7 @@ public:
                 else // easy-hard and hard-hard suffixes
                 {
                     assert(l_right - l_left > 0);
+                    std::size_t hard_chars_before = hard_easy_chars + hard_hard_chars;
                     
                     // shorthands
                     typedef std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>> ve_t; // (row in which that char appears, number of times per row)
@@ -357,8 +364,9 @@ public:
                     std::vector<parse_int_type> pids_v;
                     for (const auto& pid : pids)
                     {
-                       v.push_back(std::ref(l2_pfp_v_table[pid]));
-                       pids_v.push_back(pid);
+                        parse_int_type adj_pid = pid + int_shift;
+                        v.push_back(std::ref(l2_pfp_v_table[adj_pid]));
+                        pids_v.push_back(adj_pid);
                     }
 
                     // make a priority queue and add elements to it
@@ -391,9 +399,9 @@ public:
                         {
                             // hard-easy suffix, we can fill in the character in pid
                             auto pq_entry = from_same_l2_suffix[0];
-                            parse_int_type pid = pids_v[pq_entry.second.first];
+                            parse_int_type adj_pid = pids_v[pq_entry.second.first];
                             uint_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
-                            dict_l1_data_type c = l1_d.d[l1_d.select_b_d(pid + 1) - (suffix_length + 2)]; // end of next phrases
+                            dict_l1_data_type c = l1_d.d[l1_d.select_b_d(adj_pid - int_shift + 1) - (suffix_length + 2)]; // end of next phrases
                             if (out_vector) { out.insert(out.end(), freq, c); }
                             rle_out(c, freq);
                             hard_easy_chars += freq;
@@ -424,9 +432,11 @@ public:
                                 std::size_t colex_rank = curr.second.first + l2_M_entry.left;
                                 std::size_t l2_pid = l2_pfp.dict.colex_id[colex_rank] + 1;
     
-                                parse_int_type l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
+                                parse_int_type adj_l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
                                 // check if l1_pid is among the ones we are looking for
-                                if (l1_pid >= l2_pfp.shift) { l1_pid -= l2_pfp.shift; }
+                                assert(adj_l1_pid >= int_shift);
+                                parse_int_type l1_pid = adj_l1_pid - int_shift;
+                                
                                 if (pids.contains(l1_pid))
                                 {
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
@@ -445,7 +455,9 @@ public:
                             }
                         }
                     }
-
+                    
+                    // check that we covered the range we werer working on
+                    assert( ((hard_easy_chars + hard_hard_chars) - hard_chars_before) == ((l_right - l_left) + 1) );
                 }
                 
                 l_left = l_right + 1;
