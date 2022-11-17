@@ -408,9 +408,21 @@ public:
                             
                             // get inverted lists of corresponding phrases
                             std::vector<std::reference_wrapper<std::vector<uint_t>>> ilists;
+                            std::vector<dict_l1_data_type> ilist_corresponding_chars;
                             for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it ++)
                             {
-                                ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pfp.dict.colex_id[c_it] + 1]));
+                                // check if we need that pid
+                                std::size_t l2_pid = l2_pfp.dict.colex_id[c_it] + 1;
+                                parse_int_type adj_l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
+                                assert(adj_l1_pid >= int_shift);
+                                parse_int_type l1_pid = adj_l1_pid - int_shift;
+    
+                                if (pids.contains(l1_pid))
+                                {
+                                    ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pfp.dict.colex_id[c_it] + 1]));
+                                    dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
+                                    ilist_corresponding_chars.push_back(c);
+                                }
                             }
     
                             // make a priority queue from the inverted lists
@@ -422,22 +434,13 @@ public:
                             while (not ilist_pq.empty())
                             {
                                 auto curr = ilist_pq.top(); ilist_pq.pop();
-    
-                                std::size_t colex_rank = curr.second.first + l2_M_entry.left;
-                                std::size_t l2_pid = l2_pfp.dict.colex_id[colex_rank] + 1;
-    
-                                parse_int_type adj_l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
-                                // check if l1_pid is among the ones we are looking for
-                                assert(adj_l1_pid >= int_shift);
-                                parse_int_type l1_pid = adj_l1_pid - int_shift;
                                 
-                                if (pids.contains(l1_pid))
-                                {
-                                    dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
-                                    if (out_vector) {out.push_back(c); }
-                                    rle_out(c, 1);
-                                    hard_hard_chars += 1;
-                                }
+                                // output corresponding char
+                                dict_l1_data_type c = ilist_corresponding_chars[curr.second.first];
+                                if (out_vector) {out.push_back(c); }
+                                rle_out(c, 1);
+                                hard_hard_chars += 1;
+                                
                                 
                                 // keep iterating
                                 std::size_t arr_i_c_il = curr.second.first;  // ith array
