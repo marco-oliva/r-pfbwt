@@ -223,12 +223,12 @@ TEST_CASE( "RLBWT for yeast check all methods", "PFP on yeast.fasta" )
 }
 
 #include <pfp/sa_support.hpp>
-TEST_CASE( "Compare with PFP-DS", "PFP on yeast.2.fasta" )
+TEST_CASE( "Compare with PFP-DS", "PFP on yeast.fasta" )
 {
     bool all_good = true;
     std::size_t mismatch = 0;
     
-    std::string yeast_pfp_path = testfiles_dir + "/yeast.2.fasta";
+    std::string yeast_pfp_path = testfiles_dir + "/yeast.fasta";
     std::size_t w_l1 = 10, w_l2 = 5;
     
     // Build PFP-DS and bwt
