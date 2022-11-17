@@ -79,13 +79,15 @@ private:
                 std::size_t phrase_start = l2_pfp.dict.select_b_d(phrase + 1);
                 std::size_t phrase_length = l2_pfp.dict.length_of_phrase(phrase + 1);
                 parse_int_type c = l2_pfp.dict.d[phrase_start + (phrase_length - m.len - 1)];
-                // if (c > int_shift) { c -= int_shift; }
             
                 if (phrase_counts.empty() or phrase_counts.back().first != c)
                 {
-                    phrase_counts.push_back(std::make_pair(c, 1));
+                    phrase_counts.push_back(std::make_pair(c, l2_pfp.freq[phrase + 1]));
                 }
-                else { phrase_counts.back().second += 1; }
+                else
+                {
+                    phrase_counts.back().second += l2_pfp.freq[phrase + 1];// 1;
+                }
             }
         
             // update
@@ -299,6 +301,13 @@ public:
             }
             else
             {
+                /// --- remove from here
+                bool test = false;
+                if (l_left == 6133)
+                {
+                    test = true;
+                }
+                /// --- to here
                 
                 std::set<dict_l1_data_type> chars;
                 chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
