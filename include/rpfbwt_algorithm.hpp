@@ -301,14 +301,6 @@ public:
             }
             else
             {
-                /// --- remove from here
-                bool test = false;
-                if (l_left == 6133)
-                {
-                    test = true;
-                }
-                /// --- to here
-                
                 std::set<dict_l1_data_type> chars;
                 chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
     
