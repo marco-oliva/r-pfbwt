@@ -7,6 +7,7 @@
 #ifndef rpfbwt_algorithm_hpp
 #define rpfbwt_algorithm_hpp
 
+#include <sys/stat.h>
 #include <omp.h>
 
 #include <pfp/pfp.hpp>
@@ -206,14 +207,29 @@ private:
         return out;
     }
     
-    std::vector<uint_t> read_l1_freq(std::string& l1_prefix)
+    std::vector<uint_t> read_l1_freq(std::string& l1_prefix, std::size_t l1_d_phrases)
     {
+        // get l1 parse size to get appropriate int size for occurrences
+        struct stat stat_buf;
+        int rc = stat(std::string(l1_prefix + ".parse").c_str(), &stat_buf);
+        if (rc != 0) { spdlog::error("Error while reading size of: {}", std::string(l1_prefix + ".parse")); }
+        std::size_t parse_size = stat_buf.st_size;
+    
+        std::size_t occ_bytes;
+        if (parse_size < (std::numeric_limits<uint32_t>::max() - 1))
+        { spdlog::info("Reading in 32 bits occ file"); occ_bytes = 4; }
+        else
+        { spdlog::info("Reading in 64 bits occ file"); occ_bytes = 8; }
+    
         std::vector<uint_t> out;
-        std::size_t d1_words; uint_t * occ;
-        pfpds::read_file<uint_t> (std::string(l1_prefix + ".occ").c_str(), occ, d1_words);
         out.push_back(0);
-        out.insert(out.end(),occ, occ + d1_words);
-        delete[] occ;
+        std::ifstream occ_file(std::string(l1_prefix + ".occ"), std::ios::binary);
+        for (std::size_t i = 0; i < l1_d_phrases; i++)
+        {
+            uint_t occ_value;
+            occ_file.read((char*)&occ_value, occ_bytes);
+            out.push_back(occ_value);
+        }
         
         return out;
     }
@@ -264,7 +280,7 @@ public:
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
-      l1_freq(read_l1_freq(l1_prefix)),
+      l1_freq(read_l1_freq(l1_prefix, l1_d.n_phrases())),
       l1_cleared(clear_L1_unused_data_structures()),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
@@ -453,7 +469,7 @@ public:
                         }
                     }
                     
-                    // check that we covered the range we werer working on
+                    // check that we covered the range we were working on
                     assert( ((hard_easy_chars + hard_hard_chars) - hard_chars_before) == ((l_right - l_left) + 1) );
                 }
                 
