@@ -57,7 +57,10 @@ private:
     
     l2_colex_comp l2_comp;
     pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp;
+    std::vector<std::vector<std::size_t>> E_arrays;
+    bool E_arrays_initialized = false;
     bool l2_cleared = false;
+    
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
 
@@ -98,6 +101,51 @@ private:
                 l2_pfp_v_table[c_count.first].emplace_back(v_element);
             }
         }
+    }
+    
+    bool init_E_arrays()
+    {
+        assert(not l2_cleared);
+        
+        E_arrays.resize(l2_pfp.dict.n_phrases());
+        std::size_t end_pos_from_start = 0;
+        
+        // read P2 and expand each phrase to get the end position in the text order
+        std::vector<std::size_t> end_positions;
+        for (std::size_t i = 0; i < l2_pfp.pars.p.size() - 1; i++)
+        {
+            std::size_t l2_pid = l2_pfp.pars.p[i];
+            std::size_t l2_phrase_start = l2_pfp.dict.select_b_d(l2_pid);
+            if (l2_phrase_start == 0) { l2_phrase_start += l2_pfp.w - 1; }
+            std::size_t l2_phrase_end = l2_pfp.dict.select_b_d(l2_pid + 1) - 2;
+            
+            for (std::size_t j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
+            {
+                std::size_t l1_pid = l2_pfp.dict.d[j] - int_shift;
+                std::size_t l1_phrase_start = l1_d.select_b_d(l1_pid);
+                std::size_t l1_phrase_end = l1_d.select_b_d(l1_pid + 1) - 2;
+                std::size_t l1_phrase_length = (l1_phrase_end - l1_phrase_start) + 1;
+    
+                end_pos_from_start += (l1_phrase_length - l1_d.w);
+            }
+            end_positions.push_back(end_pos_from_start);
+        }
+//        std::size_t tot_length = end_pos_from_start;
+//        for (std::size_t i = 0; i < end_positions.size(); i++) { end_positions[i] = tot_length - end_positions[i] + 1; }
+        
+        // now reorder according to P2's SA
+        for (std::size_t i = 0; i < l2_pfp.pars.saP.size(); i++)
+        {
+            std::size_t sa_value = l2_pfp.pars.saP[i];
+            
+            if (sa_value == 0) { continue; } // { E_arrays[l2_pfp.pars.p[l2_pfp.pars.p.size() - 2]].push_back(end_positions.back()); }
+            else
+            {
+                E_arrays[l2_pfp.pars.p[sa_value - 1] - 1].push_back(end_positions[sa_value - 1]);
+            }
+        }
+        
+        return true;
     }
     
     // Computes ranges for parallel computation
@@ -272,6 +320,7 @@ public:
       l1_cleared(clear_L1_unused_data_structures()),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
+      E_arrays_initialized(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
@@ -285,9 +334,10 @@ public:
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      E_arrays_initialized(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
-    { init_v_table(); }
+    { init_v_table(); init_E_arrays(); }
     
     std::vector<dict_l1_data_type> l1_bwt_chunk(
         std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> chunk,
