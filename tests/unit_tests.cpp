@@ -364,11 +364,11 @@ TEST_CASE( "pfp<uint8_t> from example, no chunks", "PFP on example" )
 
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2);
     std::vector<uint8_t> easy_easy_and_hard_easy_chars = rpfbwt_algo.l1_bwt(true);
-    
+
     // Build the r-index
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo_ri(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2);
     std::pair<std::vector<uint8_t>, std::vector<std::size_t>> test_ri = rpfbwt_algo_ri.l1_ri(true);
-    
+
     // Check BWT
     REQUIRE(not test_ri.first.empty());
     bool all_good = true;
@@ -384,7 +384,7 @@ TEST_CASE( "pfp<uint8_t> from example, no chunks", "PFP on example" )
     parse_l1_copy.push_back(0);
     pfpds::pf_parsing<uint8_t> pfp(dict_l1, char_comp, parse_l1_copy, freq_l1, 2);
     pfpds::pfp_sa_support<uint8_t> sa_support(pfp);
-    
+
     for (std::size_t sa_i = 0; sa_i < bwt.size(); sa_i++)
     {
         std::size_t from_sa_support = sa_support(sa_i);
