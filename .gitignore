@@ -32,3 +32,6 @@
 *.app
 /cmake-build-debug/
 /cmake-build-relwithdebinfo/
+/cmake-build-debug-local
+/cmake-build-release/
+.clang-tidy

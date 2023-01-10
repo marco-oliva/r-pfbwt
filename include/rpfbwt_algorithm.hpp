@@ -52,15 +52,15 @@ private:
     
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
+    std::vector<std::size_t> l1_d_lengths;
     std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
     bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
     pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp;
     std::vector<std::vector<std::size_t>> E_arrays;
-    bool E_arrays_initialized = false;
+    std::size_t l1_n = 0; // also used to initialize l1_n
     bool l2_cleared = false;
-    
     
     std::vector<std::vector<std::pair<std::size_t, std::size_t>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
 
@@ -103,10 +103,8 @@ private:
         }
     }
     
-    bool init_E_arrays()
+    std::size_t init_E_arrays()
     {
-        assert(not l2_cleared);
-        
         E_arrays.resize(l2_pfp.dict.n_phrases());
         std::size_t end_pos_from_start = 0;
         
@@ -116,7 +114,7 @@ private:
         {
             std::size_t l2_pid = l2_pfp.pars.p[i];
             std::size_t l2_phrase_start = l2_pfp.dict.select_b_d(l2_pid);
-            if (l2_phrase_start == 0) { l2_phrase_start += l2_pfp.w - 1; }
+            if (l2_phrase_start < l2_pfp.w) { l2_phrase_start = l2_pfp.w; }
             std::size_t l2_phrase_end = l2_pfp.dict.select_b_d(l2_pid + 1) - 2;
             
             for (std::size_t j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
@@ -130,8 +128,6 @@ private:
             }
             end_positions.push_back(end_pos_from_start);
         }
-//        std::size_t tot_length = end_pos_from_start;
-//        for (std::size_t i = 0; i < end_positions.size(); i++) { end_positions[i] = tot_length - end_positions[i] + 1; }
         
         // now reorder according to P2's SA
         for (std::size_t i = 0; i < l2_pfp.pars.saP.size(); i++)
@@ -145,7 +141,7 @@ private:
             }
         }
         
-        return true;
+        return end_pos_from_start;
     }
     
     // Computes ranges for parallel computation
@@ -155,22 +151,7 @@ private:
     {
         spdlog::info("Computing chunks for parallel execution.");
         
-        // Compute total input size
-        std::size_t prev_phrase_end = 0;
-        std::size_t curr_phrase = 1;
-        std::size_t tot_length = 0;
-        for (std::size_t d_it = 0; d_it < l1_d.d.size(); d_it++)
-        {
-            if (l1_d.d[d_it] == EndOfWord)
-            {
-                tot_length += (d_it - prev_phrase_end) * l1_freq[curr_phrase];
-                
-                curr_phrase++;
-                prev_phrase_end = d_it;
-            }
-        }
-        
-        std::size_t chunk_size = (num_of_chunks > 1) ? (tot_length / (num_of_chunks - 1)) : tot_length + 1;
+        std::size_t chunk_size = (num_of_chunks > 1) ? (l1_n / (num_of_chunks - 1)) : l1_n + 1;
         
         std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> out;
         
@@ -282,27 +263,41 @@ private:
         return out;
     }
     
+    std::vector<std::size_t> init_d1_lengths(pfpds::dictionary<dict_l1_data_type> l1_d)
+    {
+        std::vector<std::size_t> out;
+        
+        std::size_t curr_length = 0;
+        for (std::size_t i = 0; i < l1_d.d.size(); i++)
+        {
+            curr_length += 1;
+            if (l1_d.d[i] == EndOfWord) { out.push_back(curr_length - 1); curr_length = 0; }
+        }
+        
+        return out;
+    }
+    
     
     bool clear_L1_unused_data_structures()
     {
         spdlog::info("Removing unused L1 data structures.");
-        l1_d.inv_colex_id.clear();
-        l1_d.colex_daD.clear();
-        l1_d.isaD.clear();
+        l1_d.inv_colex_id.resize(0);
+        l1_d.colex_daD.resize(0);
+        l1_d.isaD.resize(0);
         return true;
     }
     
     bool clear_L2_unused_data_structures()
     {
         spdlog::info("Removing unused L2 data structures.");
-        l2_pfp.dict.inv_colex_id.clear();
-        l2_pfp.dict.colex_daD.clear();
-        l2_pfp.dict.lcpD.clear();
-        l2_pfp.dict.daD.clear();
-        l2_pfp.dict.isaD.clear();
-        l2_pfp.pars.isaP.clear();
-        l2_pfp.pars.saP.clear();
-        l2_pfp.pars.lcpP.clear();
+        l2_pfp.dict.inv_colex_id.resize(0);
+        l2_pfp.dict.colex_daD.resize(0);
+        l2_pfp.dict.lcpD.resize(0);
+        l2_pfp.dict.daD.resize(0);
+        l2_pfp.dict.isaD.resize(0);
+        l2_pfp.pars.isaP.resize(0);
+        l2_pfp.pars.saP.resize(0);
+        l2_pfp.pars.lcpP.resize(0);
         return true;
     }
     
@@ -318,26 +313,29 @@ public:
                 std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
+      l1_d_lengths(init_d1_lengths(l1_d)),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
-      l2_comp(l1_d, int_shift), l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
-      E_arrays_initialized(init_E_arrays()),
-      l2_cleared(clear_L2_unused_data_structures()),
+      l2_comp(l1_d, int_shift),
+      l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
+      l1_n(init_E_arrays()),
+      l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
+      l1_cleared(clear_L1_unused_data_structures()),
+      l1_d_lengths(init_d1_lengths(l1_d)),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix, l1_d.n_phrases())),
-      l1_cleared(clear_L1_unused_data_structures()),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      E_arrays_initialized(init_E_arrays()),
+      l1_n(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)), rle_chunks(out_rle_name, chunks.size())
-    { init_v_table(); init_E_arrays(); }
+    { init_v_table(); }
     
     std::vector<dict_l1_data_type> l1_bwt_chunk(
         std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> chunk,
@@ -419,7 +417,7 @@ public:
                     typedef std::size_t ve_pq_t; // for the priority queue the row is enough, the other ingo can be retrieved from ve_t
                     typedef std::pair<ve_pq_t, std::pair<std::size_t, std::size_t>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
                     
-                    // go in second level and iterate trough list of positions for the meta-phrases we are interested into
+                    // go in second level and iterate through list of positions for the meta-phrases we are interested into
                     std::vector<ve_t> v;
                     std::vector<parse_int_type> pids_v;
                     for (const auto& pid : pids)
@@ -507,7 +505,6 @@ public:
                                 rle_out(c, 1);
                                 hard_hard_chars += 1;
                                 
-                                
                                 // keep iterating
                                 std::size_t arr_i_c_il = curr.second.first;  // ith array
                                 std::size_t arr_x_c_il = curr.second.second; // index in i-th array
@@ -557,6 +554,213 @@ public:
         }
         
         rle_chunks.close();
+    }
+    
+    
+    //------------------------------------------------------------
+    
+    std::pair<std::vector<dict_l1_data_type>, std::vector<std::size_t>> l1_ri_chunk(
+    std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> chunk,
+    bool out_vector = false)
+    {
+        std::vector<std::size_t> out_sa_values;
+        std::vector<dict_l1_data_type> out_bwt;
+    
+        std::size_t i = std::get<0>(chunk);
+    
+        std::size_t l_left  = std::get<2>(chunk);
+        std::size_t l_right = l_left;
+        std::size_t easy_chars = 0;
+        std::size_t hard_easy_chars = 0;
+        std::size_t hard_hard_chars = 0;
+        std::size_t row = std::get<3>(chunk);
+        while (i < std::get<1>(chunk))
+        {
+            auto sn = l1_d.saD[i];
+            // Check if the suffix has length at least w and is not the complete phrase.
+            auto phrase = l1_d.daD[i] + 1;
+            assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
+            uint_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
+            {
+                ++i; // Skip
+            }
+            else
+            {
+                std::set<dict_l1_data_type> chars;
+                chars.insert(l1_d.d[((sn + l1_d.d.size() - 1) % l1_d.d.size())]);
+            
+                std::set<parse_int_type> pids;
+                pids.insert(phrase);
+            
+                i++;
+                l_right += l1_freq[phrase] - 1;
+            
+                if (i < l1_d.saD.size())
+                {
+                    auto new_sn = l1_d.saD[i];
+                    auto new_phrase = l1_d.daD[i] + 1;
+                    assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                    uint_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                
+                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
+                    {
+                        chars.insert(l1_d.d[((new_sn + l1_d.d.size() - 1) % l1_d.d.size())]);
+                        pids.insert(new_phrase);
+                        ++i;
+                    
+                        l_right += l1_freq[new_phrase];
+                    
+                        if (i < l1_d.saD.size())
+                        {
+                            new_sn = l1_d.saD[i];
+                            new_phrase = l1_d.daD[i] + 1;
+                            assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                            new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                        }
+                    }
+                
+                }
+                
+                std::size_t hard_chars_before = hard_easy_chars + hard_hard_chars;
+            
+                // shorthands
+                typedef std::reference_wrapper<std::vector<std::pair<std::size_t, std::size_t>>> ve_t; // (row in which that char appears, number of times per row)
+                typedef std::size_t ve_pq_t; // for the priority queue the row is enough, the other ingo can be retrieved from ve_t
+                typedef std::pair<ve_pq_t, std::pair<std::size_t, std::size_t>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
+            
+                // go in second level and iterate through list of positions for the meta-phrases we are interested into
+                std::vector<ve_t> v;
+                std::vector<parse_int_type> pids_v;
+                for (const auto& pid : pids)
+                {
+                    parse_int_type adj_pid = pid + int_shift;
+                    v.push_back(std::ref(l2_pfp_v_table[adj_pid]));
+                    pids_v.push_back(adj_pid);
+                }
+            
+                // make a priority queue and add elements to it
+                std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
+                for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
+            
+                while (not pq.empty())
+                {
+                    // get all chars from this row entry at l2
+                    std::vector<pq_t> from_same_l2_suffix;
+                    auto first_suffix = pq.top();
+                    while ((not pq.empty()) and (pq.top().first == first_suffix.first))
+                    {
+                        auto curr = pq.top(); pq.pop();
+                        from_same_l2_suffix.push_back(curr);
+                    
+                        std::size_t arr_i_c = curr.second.first;  // ith array
+                        std::size_t arr_x_c = curr.second.second; // index in i-th array
+                        if (arr_x_c + 1 < v[arr_i_c].get().size())
+                        {
+                            pq.push({ v[arr_i_c].get()[arr_x_c + 1].first, { arr_i_c, arr_x_c + 1 } });
+                        }
+                    }
+                    
+                    // hard-hard suffix, need to look at the grid in L2
+                    std::size_t curr_l2_row = from_same_l2_suffix[0].first;
+                    auto& l2_M_entry = l2_pfp.M[curr_l2_row];
+                
+                    // get inverted lists of corresponding phrases
+                    std::vector<std::reference_wrapper<std::vector<uint_t>>> ilists;
+                    std::vector<std::reference_wrapper<std::vector<std::size_t>>> ilists_e_arrays;
+                    std::vector<dict_l1_data_type> ilist_corresponding_chars;
+                    std::vector<std::size_t> ilist_corresponding_sa_expanded_values;
+                    for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it++)
+                    {
+                        // check if we need that pid
+                        std::size_t l2_pid = l2_pfp.dict.colex_id[c_it] + 1;
+                        parse_int_type adj_l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
+                        assert(adj_l1_pid >= int_shift);
+                        parse_int_type l1_pid = adj_l1_pid - int_shift;
+                    
+                        if (pids.contains(l1_pid))
+                        {
+                            ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pid]));
+                            ilists_e_arrays.push_back(std::ref(E_arrays[l2_pid - 1]));
+                            
+                            dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
+                            ilist_corresponding_chars.push_back(c);
+                            
+                            // get the length of the current l2_suffix by expanding phrases
+                            std::size_t l2_suff_start = l2_pfp.dict.select_b_d(l2_pid + 1) - 2 - (l2_M_entry.len - 1);
+                            std::size_t l2_suff_end = l2_pfp.dict.select_b_d(l2_pid + 1) - 2 - (l2_pfp.w - 1) - 1;
+                            std::size_t sa_r = 0;
+                            for (std::size_t p_it_b = l2_suff_start; p_it_b <= l2_suff_end; p_it_b++)
+                            {
+                                std::size_t adj_pid = l2_pfp.dict.d[p_it_b] - int_shift;
+                                sa_r += l1_d_lengths[adj_pid - 1] - l1_d.w; // l1_d.select_b_d(adj_pid + 1) - l1_d.select_b_d(adj_pid) - 1 - l1_d.w;
+                            }
+                            ilist_corresponding_sa_expanded_values.push_back(sa_r); // the sum of the lengsh of each l1 pid in the l2 phrase suffix
+                        }
+                    }
+                
+                    // make a priority queue from the inverted lists
+                    typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
+                    std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                    for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
+                
+                    // now pop elements from the priority queue and write out the corresponding character
+                    while (not ilist_pq.empty())
+                    {
+                        auto curr = ilist_pq.top(); ilist_pq.pop();
+    
+                        // output corresponding sa value
+                        std::size_t phrase_end = ilists_e_arrays[curr.second.first].get()[curr.second.second];
+                        std::size_t out_sa_value = phrase_end - (ilist_corresponding_sa_expanded_values[curr.second.first]);
+                        
+                        if (phrase_end == l1_d.w and suffix_length > phrase_end) { out_sa_value = l1_n - (suffix_length - phrase_end); }
+                        else { out_sa_value -= suffix_length; }
+                        
+                        if (out_vector) { out_sa_values.push_back(out_sa_value); }
+    
+                        // output corresponding char
+                        dict_l1_data_type c = ilist_corresponding_chars[curr.second.first];
+                        if (out_vector) { out_bwt.push_back(c); }
+                        // rle_out(c, 1);
+                        
+                        // keep iterating
+                        std::size_t arr_i_c_il = curr.second.first;  // ith array
+                        std::size_t arr_x_c_il = curr.second.second; // index in i-th array
+                        if (arr_x_c_il + 1 < ilists[arr_i_c_il].get().size())
+                        {
+                            ilist_pq.push({ ilists[arr_i_c_il].get()[arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
+                        }
+                    }
+                }
+            
+                l_left = l_right + 1;
+                l_right = l_left;
+                row++;
+            }
+        }
+    
+        return std::make_pair(out_bwt, out_sa_values);
+    }
+    
+    std::pair<std::vector<dict_l1_data_type>, std::vector<std::size_t>>
+    l1_ri(bool out_vector = false)
+    {
+        std::pair<std::vector<dict_l1_data_type>, std::vector<std::size_t>> out;
+    
+        for (std::size_t i = 0; i < chunks.size(); i++)
+        {
+            std::pair<std::vector<dict_l1_data_type>, std::vector<std::size_t>> ri_chunk = l1_ri_chunk(chunks[i], out_vector);
+            
+            if (not ri_chunk.first.empty())
+            { out.first.insert(out.first.end(), ri_chunk.first.begin(), ri_chunk.first.end()); }
+    
+            if (not ri_chunk.second.empty())
+            { out.second.insert(out.second.end(), ri_chunk.second.begin(), ri_chunk.second.end()); }
+            
+            spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
+        }
+    
+        return out;
     }
 };
 
