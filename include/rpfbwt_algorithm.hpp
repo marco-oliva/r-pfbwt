@@ -713,12 +713,9 @@ public:
                         std::size_t phrase_end = ilists_e_arrays[curr.second.first].get()[curr.second.second];
                         std::size_t out_sa_value = phrase_end - (ilist_corresponding_sa_expanded_values[curr.second.first]);
                         
-                        // circular pfp
+                        // compute sa value for circular representation
                         if (out_sa_value > suffix_length) { out_sa_value -= suffix_length; }
                         else { out_sa_value = (l1_n + out_sa_value - suffix_length) % l1_n; }
-                        
-//                        if (out_sa_value > suffix_length) { out_sa_value = l1_n - (suffix_length - phrase_end); }
-//                        else { out_sa_value -= suffix_length; }
                         
                         if (out_vector) { out_sa_values.push_back(out_sa_value); }
     
