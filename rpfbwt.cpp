@@ -33,9 +33,6 @@ int main(int argc, char **argv)
     // Set tmp dir for rle string
     if (not tmp_dir.empty()) { rle::TempFile::setDirectory(tmp_dir); }
     
-    // Set threads accordingly to configuration
-    omp_set_num_threads(threads);
-    
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, threads * chunks_per_thread);
-    rpfbwt_algo.l1_bwt_parallel();
+    rpfbwt_algo.l1_refined_rindex(threads);
 }
