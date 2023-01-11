@@ -7,6 +7,7 @@
 #ifndef rpfbwt_algorithm_hpp
 #define rpfbwt_algorithm_hpp
 
+#include <filesystem>
 #include <sys/stat.h>
 #include <omp.h>
 
@@ -156,7 +157,7 @@ private:
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>>
     compute_chunks(std::size_t num_of_chunks)
     {
-        spdlog::info("Computing chunks for parallel execution.");
+        spdlog::info("Computing chunks for parallel execution. Total input size: {}. Requested chunks: {}", l1_n, num_of_chunks);
         
         std::size_t chunk_size = (num_of_chunks > 1) ? (l1_n / (num_of_chunks - 1)) : l1_n + 1;
         
@@ -248,10 +249,11 @@ private:
         spdlog::info("Reading in l1 frequencies");
         
         // get l1 parse size to get appropriate int size for occurrences
-        struct stat stat_buf;
-        int rc = stat(std::string(l1_prefix + ".parse").c_str(), &stat_buf);
-        if (rc != 0) { spdlog::error("Error while reading size of: {}", std::string(l1_prefix + ".parse")); }
-        std::size_t parse_size = stat_buf.st_size;
+    
+        std::filesystem::path parse_path(std::string(l1_prefix + ".parse"));
+        std::size_t parse_size = std::filesystem::file_size(parse_path) / sizeof(uint32_t);
+
+        spdlog::info("l1 parse size: {} bytes", parse_size * sizeof(uint32_t));
     
         std::size_t occ_bytes;
         if (parse_size < (std::numeric_limits<uint32_t>::max() - 1))
