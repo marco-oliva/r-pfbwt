@@ -418,7 +418,7 @@ public:
                     if (prev_char == 0 or prev_char != *(chars.begin()))
                     {
                         std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                        runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars);
+                        runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
                         prev_char = *(chars.begin());
                     }
                     
@@ -483,7 +483,7 @@ public:
                             if (prev_char == 0 or prev_char != c)
                             {
                                 std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                                runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars);
+                                runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
                                 prev_char = c;
                             }
                             
@@ -532,7 +532,7 @@ public:
                                 if (prev_char == 0 or prev_char != c)
                                 {
                                     std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                                    runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars);
+                                    runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
                                     prev_char = c;
                                 }
                                 
