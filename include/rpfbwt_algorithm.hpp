@@ -74,6 +74,8 @@ private:
     
     void init_v_table()
     {
+        spdlog::info("Creating v table");
+        
         // now build V
         for (std::size_t row = 0; row < l2_pfp.M.size(); row++)
         {
@@ -108,6 +110,8 @@ private:
     
     std::size_t init_E_arrays()
     {
+        spdlog::info("Creating E arrays");
+        
         E_arrays.resize(l2_pfp.dict.n_phrases());
         std::size_t end_pos_from_start = 0;
         
@@ -241,6 +245,8 @@ private:
     
     std::vector<uint_t> read_l1_freq(std::string& l1_prefix, std::size_t l1_d_phrases)
     {
+        spdlog::info("Reading in l1 frequencies");
+        
         // get l1 parse size to get appropriate int size for occurrences
         struct stat stat_buf;
         int rc = stat(std::string(l1_prefix + ".parse").c_str(), &stat_buf);
@@ -268,6 +274,8 @@ private:
     
     std::vector<std::size_t> init_d1_lengths(pfpds::dictionary<dict_l1_data_type> l1_d)
     {
+        spdlog::info("Precomputing l1 d lengths");
+        
         std::vector<std::size_t> out;
         
         std::size_t curr_length = 0;
