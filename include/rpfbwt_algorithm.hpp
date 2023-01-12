@@ -69,9 +69,6 @@ private:
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> chunks;
     
     rle::RLEString::RLEncoderMerger rle_chunks;
-    std::ofstream sa_values_ofstream;
-    std::ofstream sa_positions_ofstream;
-    
     
     void init_v_table()
     {
@@ -334,9 +331,7 @@ public:
       l1_n(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)),
-      rle_chunks(out_rle_name, chunks.size()),
-      sa_values_ofstream(l1_prefix + ".ssa", std::ios::out | std::ios::binary),
-      sa_positions_ofstream(l1_prefix + ".pssa", std::ios::out | std::ios::binary)
+      rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
@@ -351,16 +346,13 @@ public:
       l1_n(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
       chunks(compute_chunks(bwt_chunks)),
-      rle_chunks(out_rle_name, chunks.size()),
-      sa_values_ofstream(l1_prefix + ".ssa", std::ios::out | std::ios::binary),
-      sa_positions_ofstream(l1_prefix + ".pssa", std::ios::out | std::ios::binary)
+      rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
     void
     l1_bwt_chunk(
     const std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>& chunk,
-    rle::RLEString::RLEncoder& rle_out,
-    std::vector<std::size_t>& runs_heads_positions)
+    rle::RLEString::RLEncoder& rle_out)
     {
         std::size_t i = std::get<0>(chunk);
         
@@ -424,14 +416,6 @@ public:
                 {
                     // easy suffixes
                     rle_out(*(chars.begin()), (l_right - l_left) + 1);
-                    
-                    if (prev_char == 0 or prev_char != *(chars.begin()))
-                    {
-                        std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                        runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
-                        prev_char = *(chars.begin());
-                    }
-                    
                     easy_chars += (l_right - l_left) + 1;
                 }
                 else // easy-hard and hard-hard suffixes
@@ -489,14 +473,6 @@ public:
                             dict_l1_data_type c = l1_d.d[l1_d.select_b_d(adj_pid - int_shift + 1) - (suffix_length + 2)]; // end of next phrases
                             
                             rle_out(c, freq);
-                            
-                            if (prev_char == 0 or prev_char != c)
-                            {
-                                std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                                runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
-                                prev_char = c;
-                            }
-                            
                             hard_easy_chars += freq;
                         }
                         else
@@ -538,14 +514,6 @@ public:
                                 dict_l1_data_type c = ilist_corresponding_chars[curr.second.first];
 
                                 rle_out(c, 1);
-    
-                                if (prev_char == 0 or prev_char != c)
-                                {
-                                    std::size_t run_start_pos = easy_chars + hard_easy_chars + hard_hard_chars;
-                                    runs_heads_positions.push_back(easy_chars + hard_easy_chars + hard_hard_chars + std::get<2>(chunk));
-                                    prev_char = c;
-                                }
-                                
                                 hard_hard_chars += 1;
                                 
                                 // keep iterating
@@ -575,10 +543,12 @@ public:
     void
     l1_sa_values_chunk(
     const std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>& chunk,
-    const std::vector<std::size_t>& runs_heads_positions,
-    std::vector<std::size_t>& out_sa_values)
+    const rle::bitvector& run_heads_bitvector,
+    const std::string& tmp_file_name)
     {
         std::size_t i = std::get<0>(chunk);
+        
+        std::ofstream out_sa_tmp_fstream(tmp_file_name, std::ios::out | std::ios::binary);
     
         std::size_t sa_pos_iterator = 0;
         
@@ -636,15 +606,11 @@ public:
                 
                 }
                 
-                std::size_t sa_values_in_this_range = 0;
-                std::size_t sa_pos_f_it = sa_pos_iterator;
-                while (sa_pos_f_it < runs_heads_positions.size() and runs_heads_positions[sa_pos_f_it] <= l_right)
-                {
-                    sa_values_in_this_range += 1;
-                    sa_pos_f_it++;
-                }
+                std::size_t run_heads_in_range = 0;
+                if (run_heads_bitvector[l_left]) { run_heads_in_range = 1; } // at least
+                else { run_heads_in_range = run_heads_bitvector.rank(l_right + 1) - run_heads_bitvector.rank(l_left); } ; // include the extremes
                 
-                if (sa_values_in_this_range != 0) // do the whole thing
+                if (run_heads_in_range != 0) // do the whole thing
                 {
                     std::size_t sa_values_c = 0; // number of sa values computed in this range
                     
@@ -742,9 +708,9 @@ public:
                             else { out_sa_value = (l1_n + out_sa_value - suffix_length) % l1_n; }
                             
                             // output if run head
-                            if (l_left + sa_values_c == runs_heads_positions[sa_pos_iterator])
+                            if (run_heads_bitvector[l_left + sa_values_c])
                             {
-                                out_sa_values.push_back(out_sa_value);
+                                out_sa_tmp_fstream.write((char*)&out_sa_value, sizeof(std::size_t));
                                 sa_pos_iterator += 1;
                             }
             
@@ -760,15 +726,17 @@ public:
                         }
                     }
                 }
-                else
-                { sa_pos_iterator += sa_values_in_this_range; } // else skip to the next range
             
                 l_left = l_right + 1;
                 l_right = l_left;
                 row++;
             }
         }
+    
+        // close tmp file stream
+        out_sa_tmp_fstream.close();
     }
+    
     
     //------------------------------------------------------------
     
@@ -777,51 +745,63 @@ public:
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);
         
+        // ----------
         // Compute run length encoded bwt and run heads positions
-        std::vector<std::vector<std::size_t>> run_start_positions(chunks.size());
-
-        #pragma omp parallel for schedule(static) default(none) shared(run_start_positions)
+        #pragma omp parallel for schedule(static) default(none)
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
-            l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i), run_start_positions[i]);
+            l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
             spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
         }
         rle_chunks.close();
     
-        // Compute sa values at run heads
-        std::vector<std::vector<std::size_t>> run_start_sa_values(chunks.size());
+        // ----------
+        // Get bitvector marking run heads from the rle bwt
+        rle::RLEString::RLEDecoder rle_decoder(out_rle_name);
+        sdsl::sd_vector_builder run_heads_bv_builder(rle_decoder.metadata.size, rle_decoder.metadata.runs);
+        std::size_t runs_bv_it = 0;
+    
+        while (not rle_decoder.end())
+        {
+            rle::RunType run = rle_decoder.next();
+            dict_l1_data_type c = rle::RunTraits::charachter(run);
+            std::size_t len = rle::RunTraits::length(run);
         
-        #pragma omp parallel for schedule(static) default(none) shared(run_start_positions, run_start_sa_values)
+            if (len != 0)
+            { run_heads_bv_builder.set(runs_bv_it); runs_bv_it += len; }
+        }
+    
+        rle::bitvector run_heads_bv = rle::bitvector(run_heads_bv_builder);
+    
+        // ----------
+        // Compute sa values at run heads
+        std::vector<std::string> sa_chunks_tmp_files;
+        for (std::size_t i = 0; i < chunks.size(); i++) { sa_chunks_tmp_files.push_back(rle::TempFile::getName("sa_chunk")); }
+        
+        #pragma omp parallel for schedule(static) default(none) shared(run_heads_bv, sa_chunks_tmp_files)
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
-            l1_sa_values_chunk(chunks[i], run_start_positions[i], run_start_sa_values[i]);
+            l1_sa_values_chunk(chunks[i], run_heads_bv, sa_chunks_tmp_files[i]);
             spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
         }
-        
-        spdlog::info("Writing out sa values and positions");
-        std::size_t start_pos_size = 0;
-        for (std::size_t i = 0; i < chunks.size(); i++) { start_pos_size += run_start_positions[i].size(); }
     
-        std::size_t sa_values_size = 0;
-        for (std::size_t i = 0; i < chunks.size(); i++) { sa_values_size += run_start_sa_values[i].size(); }
+        // ----------
+        // Merge sa values tmp files
+        spdlog::info("Writing out sa values at run heads");
+        std::ofstream out_sa_values(l1_prefix + ".ssa", std::ios::out | std::ios::binary);
         
-        assert(start_pos_size == sa_values_size);
+        // write number of values first
+        std::size_t tot_sa_values = run_heads_bv.number_of_1();
+        out_sa_values.write((char*) &tot_sa_values, sizeof(tot_sa_values));
         
-        // write out first size, then content
-        sa_positions_ofstream.write((char*)&start_pos_size, sizeof(start_pos_size));
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
-            sa_positions_ofstream.write((char*)&(run_start_positions[i][0]), run_start_positions[i].size() * sizeof(std::size_t));
+            std::ifstream if_sa_chunk(sa_chunks_tmp_files[i], std::ios_base::binary);
+            out_sa_values << if_sa_chunk.rdbuf();
         }
-        sa_positions_ofstream.close();
+        out_sa_values.close();
     
-        // write out first size, then content
-        sa_values_ofstream.write((char*)&sa_values_size, sizeof(sa_values_size));
-        for (std::size_t i = 0; i < chunks.size(); i++)
-        {
-            sa_values_ofstream.write((char*)&(run_start_sa_values[i][0]), run_start_sa_values[i].size() * sizeof(std::size_t));
-        }
-        sa_values_ofstream.close();
+        spdlog::info("Done");
     }
     
 };
