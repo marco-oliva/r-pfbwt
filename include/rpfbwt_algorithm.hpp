@@ -137,8 +137,8 @@ private:
         {
             std::size_t l2_pid = l2_pfp.pars.p[i];
             std::size_t l2_phrase_start = l2_pfp.dict.select_b_d(l2_pid);
+            std::size_t l2_phrase_end = l2_phrase_start + l2_d_lengths[l2_pid - 1] - 1;
             if (l2_phrase_start < l2_pfp.w) { l2_phrase_start = l2_pfp.w; }
-            std::size_t l2_phrase_end = l2_pfp.dict.select_b_d(l2_pid + 1) - 2;
             
             for (std::size_t j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
             {
