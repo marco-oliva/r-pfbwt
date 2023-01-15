@@ -59,6 +59,7 @@ private:
     
     l2_colex_comp l2_comp;
     pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp;
+    std::vector<std::size_t> l2_d_lengths;
     std::vector<std::vector<std::size_t>> E_arrays;
     std::size_t l1_n = 0; // also used to initialize l1_n
     bool l2_cleared = false;
@@ -69,6 +70,23 @@ private:
     std::vector<std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>> chunks;
     
     rle::RLEString::RLEncoderMerger rle_chunks;
+    
+    template <typename dict_char_type>
+    std::vector<std::size_t> init_d_lengths(const std::vector<dict_char_type>& dict_array)
+    {
+        spdlog::info("Precomputing l1 d lengths");
+        
+        std::vector<std::size_t> out;
+        
+        std::size_t curr_length = 0;
+        for (std::size_t i = 0; i < dict_array.size(); i++)
+        {
+            curr_length += 1;
+            if (dict_array[i] == EndOfWord) { out.push_back(curr_length - 1); curr_length = 0; }
+        }
+        
+        return out;
+    }
     
     void init_v_table()
     {
@@ -84,7 +102,7 @@ private:
             {
                 auto phrase = l2_pfp.dict.colex_id[r];
                 std::size_t phrase_start = l2_pfp.dict.select_b_d(phrase + 1);
-                std::size_t phrase_length = l2_pfp.dict.length_of_phrase(phrase + 1);
+                std::size_t phrase_length =  l2_d_lengths[phrase];
                 parse_int_type c = l2_pfp.dict.d[phrase_start + (phrase_length - m.len - 1)];
             
                 if (phrase_counts.empty() or phrase_counts.back().first != c)
@@ -125,9 +143,7 @@ private:
             for (std::size_t j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
             {
                 std::size_t l1_pid = l2_pfp.dict.d[j] - int_shift;
-                std::size_t l1_phrase_start = l1_d.select_b_d(l1_pid);
-                std::size_t l1_phrase_end = l1_d.select_b_d(l1_pid + 1) - 2;
-                std::size_t l1_phrase_length = (l1_phrase_end - l1_phrase_start) + 1;
+                std::size_t l1_phrase_length = l1_d_lengths[l1_pid - 1];
     
                 end_pos_from_start += (l1_phrase_length - l1_d.w);
             }
@@ -271,23 +287,6 @@ private:
         return out;
     }
     
-    std::vector<std::size_t> init_d1_lengths(pfpds::dictionary<dict_l1_data_type> l1_d)
-    {
-        spdlog::info("Precomputing l1 d lengths");
-        
-        std::vector<std::size_t> out;
-        
-        std::size_t curr_length = 0;
-        for (std::size_t i = 0; i < l1_d.d.size(); i++)
-        {
-            curr_length += 1;
-            if (l1_d.d[i] == EndOfWord) { out.push_back(curr_length - 1); curr_length = 0; }
-        }
-        
-        return out;
-    }
-    
-    
     bool clear_L1_unused_data_structures()
     {
         spdlog::info("Removing unused L1 data structures.");
@@ -323,10 +322,11 @@ public:
                 std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
-      l1_d_lengths(init_d1_lengths(l1_d)),
+      l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
       l2_comp(l1_d, int_shift),
       l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
+      l2_d_lengths(init_d_lengths<uint32_t>(l2_pfp.dict.d)),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       l1_n(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
@@ -337,11 +337,12 @@ public:
     rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
     : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
       l1_cleared(clear_L1_unused_data_structures()),
-      l1_d_lengths(init_d1_lengths(l1_d)),
+      l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
       l1_freq(read_l1_freq(l1_prefix, l1_d.n_phrases())),
       l2_comp(l1_d, int_shift),
       l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
+      l2_d_lengths(init_d_lengths<uint32_t>(l2_pfp.dict.d)),
       l2_pfp_v_table(l2_pfp.dict.alphabet_size),
       l1_n(init_E_arrays()),
       l2_cleared(clear_L2_unused_data_structures()),
