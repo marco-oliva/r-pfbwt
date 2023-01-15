@@ -74,7 +74,7 @@ private:
     template <typename dict_char_type>
     std::vector<std::size_t> init_d_lengths(const std::vector<dict_char_type>& dict_array)
     {
-        spdlog::info("Precomputing l1 d lengths");
+        spdlog::info("Precomputing d lengths");
         
         std::vector<std::size_t> out;
         
