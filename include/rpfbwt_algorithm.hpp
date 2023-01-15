@@ -547,6 +547,9 @@ public:
     const rle::bitvector& run_heads_bitvector,
     const std::string& tmp_file_name)
     {
+        std::size_t skipped_portion = 0;
+        std::size_t processed_portion = 0;
+        
         std::size_t i = std::get<0>(chunk);
         
         std::ofstream out_sa_tmp_fstream(tmp_file_name, std::ios::out | std::ios::binary);
@@ -726,6 +729,12 @@ public:
                             sa_values_c++;
                         }
                     }
+                    
+                    processed_portion += l_right - l_left;
+                }
+                else // we skipped this portions
+                {
+                    skipped_portion += l_right - l_left;
                 }
             
                 l_left = l_right + 1;
@@ -733,6 +742,7 @@ public:
                 row++;
             }
         }
+        spdlog::info("Processed: {} Skipped: {}", processed_portion, skipped_portion);
     
         // close tmp file stream
         out_sa_tmp_fstream.close();
@@ -748,7 +758,7 @@ public:
         
         // ----------
         // Compute run length encoded bwt and run heads positions
-        #pragma omp parallel for schedule(static) default(none)
+        #pragma omp parallel for schedule(dynamic) default(none)
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
             l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
@@ -779,7 +789,7 @@ public:
         std::vector<std::string> sa_chunks_tmp_files;
         for (std::size_t i = 0; i < chunks.size(); i++) { sa_chunks_tmp_files.push_back(rle::TempFile::getName("sa_chunk")); }
         
-        #pragma omp parallel for schedule(static) default(none) shared(run_heads_bv, sa_chunks_tmp_files)
+        #pragma omp parallel for schedule(dynamic) default(none) shared(run_heads_bv, sa_chunks_tmp_files)
         for (std::size_t i = 0; i < chunks.size(); i++)
         {
             l1_sa_values_chunk(chunks[i], run_heads_bv, sa_chunks_tmp_files[i]);
