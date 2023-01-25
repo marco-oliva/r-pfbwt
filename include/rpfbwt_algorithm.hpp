@@ -54,7 +54,7 @@ private:
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<std::size_t> l1_d_lengths;
-    std::vector<uint_t> l1_freq; // here occ has the same size as the integers used for gsacak.
+    std::vector<uint_t> l1_freq; // TODO: Here occ has the same size as the integers used for gsacak. Compatibility issue.
     bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
@@ -662,7 +662,6 @@ public:
                         // get inverted lists of corresponding phrases
                         std::vector<std::reference_wrapper<std::vector<uint_t>>> ilists;
                         std::vector<std::reference_wrapper<std::vector<std::size_t>>> ilists_e_arrays;
-                        std::vector<dict_l1_data_type> ilist_corresponding_chars;
                         std::vector<std::size_t> ilist_corresponding_sa_expanded_values;
                         for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it++)
                         {
@@ -676,10 +675,7 @@ public:
                             {
                                 ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pid]));
                                 ilists_e_arrays.push_back(std::ref(E_arrays[l2_pid - 1]));
-                
-                                dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
-                                ilist_corresponding_chars.push_back(c);
-                
+                                
                                 // get the length of the current l2_suffix by expanding phrases
                                 std::size_t l2_suff_start = l2_pfp.dict.select_b_d(l2_pid + 1) - 2 - (l2_M_entry.len - 1);
                                 std::size_t l2_suff_end = l2_pfp.dict.select_b_d(l2_pid + 1) - 2 - (l2_pfp.w - 1) - 1;
@@ -729,7 +725,6 @@ public:
                             sa_values_c++;
                         }
                     }
-                    
                     processed_portion += l_right - l_left;
                 }
                 else // we skipped this portions
@@ -746,6 +741,24 @@ public:
     
         // close tmp file stream
         out_sa_tmp_fstream.close();
+    }
+    
+    //------------------------------------------------------------
+    
+    void l1_rlebwt(std::size_t threads = 1)
+    {
+        // Set threads accordingly to configuration
+        omp_set_num_threads(threads);
+    
+        // ----------
+        // Compute run length encoded bwt and run heads positions
+        #pragma omp parallel for schedule(dynamic) default(none)
+        for (std::size_t i = 0; i < chunks.size(); i++)
+        {
+            l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
+            spdlog::info("Chunk {}/{} completed", i + 1, chunks.size());
+        }
+        rle_chunks.close();
     }
     
     

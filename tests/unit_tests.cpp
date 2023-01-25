@@ -66,7 +66,7 @@ void read_fasta_file(const char *filename, std::vector<char_type>& v, std::size_
 
 #include <rpfbwt_algorithm.hpp>
 
-TEST_CASE( "pfp<uint8_t> SA from example, no chunks", "PFP on example" )
+TEST_CASE( "pfp<uint8_t> SA from example, no chunks", "[small]" )
 {
     size_t w_l1 = 2;
 
@@ -218,7 +218,7 @@ TEST_CASE( "pfp<uint8_t> SA from example, no chunks", "PFP on example" )
     REQUIRE(all_good);
 }
 
-TEST_CASE( "Compare r-index with PFP-DS", "PFP on yeast.fasta" )
+TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
 {
     bool all_good = true;
     std::size_t mismatch = 0;

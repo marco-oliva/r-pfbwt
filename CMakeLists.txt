@@ -247,11 +247,11 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_executable(unit_tests_rpfbwt tests/unit_tests.cpp)
     target_link_libraries(unit_tests_rpfbwt Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
 
-    add_executable(unit_tests_rpfbwt_64 tests/unit_tests.cpp)
-    target_link_libraries(unit_tests_rpfbwt_64 Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
+    add_executable(unit_tests_rpfbwt64 tests/unit_tests.cpp)
+    target_link_libraries(unit_tests_rpfbwt64 Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
 
     enable_testing()
-    add_test(NAME unit_tests_rpfbwt COMMAND unit_tests_rpfbwt)
+    add_test(NAME unit_tests_rpfbwt COMMAND unit_tests_rpfbwt [small])
 endif()
 
 ################################################################################
