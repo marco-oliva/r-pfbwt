@@ -244,14 +244,15 @@ endif()
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
 
-    add_executable(unit_tests_rpfbwt tests/unit_tests.cpp)
-    target_link_libraries(unit_tests_rpfbwt Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
+    add_executable(unit_tests_rpfbwt32 tests/unit_tests.cpp)
+    target_link_libraries(unit_tests_rpfbwt32 Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
 
     add_executable(unit_tests_rpfbwt64 tests/unit_tests.cpp)
     target_link_libraries(unit_tests_rpfbwt64 Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
 
     enable_testing()
-    add_test(NAME unit_tests_rpfbwt COMMAND unit_tests_rpfbwt [small])
+    add_test(NAME unit_tests_rpfbwt32 COMMAND unit_tests_rpfbwt32 [small])
+    add_test(NAME unit_tests_rpfbwt64 COMMAND unit_tests_rpfbwt64 [small])
 endif()
 
 ################################################################################
