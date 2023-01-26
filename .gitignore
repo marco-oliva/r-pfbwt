@@ -30,6 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Other
 /cmake-build-debug/
 /cmake-build-relwithdebinfo/
 /cmake-build-debug-local
