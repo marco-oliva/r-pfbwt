@@ -1,1 +1,50 @@
-# r-pfbwt
+# `r-pfbwt`
+
+`r-pfbwt` is a tool to build the run-length encoded *BWT* and the SA values at the run heads from the prefix-free 
+parsing of the input data.
+
+## Build
+`r-pfbwt` can be built using: 
+
+```shell
+git clone https://github.com/marco-oliva/r-pfbwt.git
+cd r-pfbwt
+mkdir build && cd build
+cmake ..
+make 
+```
+ 
+## How to use `r-pfbwt`
+`r-pfbwt` takes as input the prefix-free parse of the input data, namely a dictionary *D<sub>1</sub>* and a parse *P<sub>1</sub>*, and 
+the dictionary *D<sub>2</sub>* and the parse *P<sub>2</sub>* obtained by prefix-free parsing *P<sub>1</sub>*. Note that `r-pfbwt` does not use *P<sub>1</sub>*,
+it only uses *D<sub>1</sub>*, *D<sub>2</sub>* and *P<sub>2</sub>*. In order to compute the prefix-free parsing of the input data we can use `pfp++`
+([link here](https://github.com/marco-oliva/pfp.git)). The following example computes the run-length encoded *BWT* of multiple
+sequences of yeast.
+
+```shell
+wget https://gitlab.com/manzai/Big-BWT/-/blob/f67022fe74dae0234e516324103613a0fdd58a6e/yeast.fasta -O ./yeast.fasta
+pfp++ -f yeast.fasta -w 10 -p 100 --output-occurrences 
+pfp++ -i yeast.fasta.parse -w 5 -p 11 
+r-pfbwt32  --l1-prefix yeast.fasta --w1 10 --w2 5 --threads 10
+```
+
+
+## Usage
+We report here all the available parameters for `r-pfbwt`
+
+```shell
+rpfbwt
+Usage: ./rpfbwt32 [OPTIONS]
+
+Options:
+-h,--help                   Print this help message and exit
+--l1-prefix TEXT REQUIRED   Level 1 Prefix.
+--w1 UINT REQUIRED          Level 1 window length.
+--w2 UINT REQUIRED          Level 2 window length.
+-t,--threads UINT           Number of threads.
+--chunks-per-thread UINT    Number of chunks per thread.
+--tmp-dir TEXT:DIR          Temporary files directory.
+--bwt-only                  Only compute the RLBWT. No SA values.
+--version                   Version number.
+--configure                 Read an ini file
+```
