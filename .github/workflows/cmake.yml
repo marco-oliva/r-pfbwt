@@ -17,6 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
+
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
@@ -32,6 +36,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew install make cmake libomp
 
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
