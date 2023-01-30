@@ -252,12 +252,14 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/generated)
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+
 if (ENABLE_MALLOC_COUNT)
-    message(STATUS "Using malloc_count.c")
-    file(GLOB MALLOC_COUNT_SOURCES ${mcount_SOURCE_DIR}/*.c)
+    message(STATUS "Using malloc_count")
+    set(MALLOC_COUNT_LIBRARIES malloc_count)
 else()
-    set(MALLOC_COUNT_SOURCES "")
+    set(MALLOC_COUNT_LIBRARIES "")
 endif()
+
 
 ################################################################################
 # Tests
@@ -266,10 +268,10 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
 
     add_executable(rpfbwt32_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
+    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
     add_executable(rpfbwt64_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
+    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
     enable_testing()
     add_test(NAME rpfbwt32_unit_tests COMMAND rpfbwt32_unit_tests [small])
@@ -280,10 +282,10 @@ endif()
 # Targets
 
 add_executable(rpfbwt32 rpfbwt.cpp)
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring)
+target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
 add_executable(rpfbwt64 rpfbwt.cpp)
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring)
+target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
 ################################################################################
 # Install
