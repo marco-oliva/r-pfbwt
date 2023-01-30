@@ -194,22 +194,45 @@ if(NOT rlestring_POPULATED)
 endif()
 include_directories(${rlestring_SOURCE_DIR}/include)
 
-# OpenMP
+# Openmp
 find_package(OpenMP)
-if(OPENMP_FOUND)
-    include_directories(${OpenMP_CXX_INCLUDE_DIRS})
-    link_libraries(${OpenMP_CXX_LIBRARIES})
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        # assumes clang build
-        # we can't reliably detect when we're using clang, so for the time being we assume
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -Xpreprocessor -fopenmp")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -Xpreprocessor -fopenmp")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    endif()
+if(OpenMP_FOUND OR OPENMP_FOUND)
+    message(STATUS "HAVE_OPENMP: OpenMP")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(OMP_LIBRARIES "${OpenMP_CXX_LIBRARIES}")
+elseif(APPLE AND EXISTS "/opt/local/lib/libomp")
+    # official Apple compiler with macports' libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[MacPorts]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I/opt/local/include/libomp")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/opt/local/include/libomp")
+    set(OMP_LIBRARIES "-L/opt/local/lib/libomp -lomp")
+elseif(APPLE AND EXISTS "/usr/local/opt/libomp")
+    # official Apple compiler with homebrew's kegg libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[Homebrew kegg]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+    set(OMP_LIBRARIES "-L/usr/local/opt/libomp/lib -lomp")
+elseif(APPLE AND EXISTS "/usr/local/lib/libomp.dylib")
+    # official Apple compiler with homebrew's libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[Homebrew]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
+    set(OMP_LIBRARIES "-L/usr/local/lib -lomp")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND EXISTS "/usr/local/lib64/libgomp.a")
+    # custom static openmp for official linux builds
+    message(STATUS "HAVE_OPENMP: OpenMP[static]")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
+    set(OMP_LIBRARIES "/usr/local/lib64/libgomp.a")
+else()
+    message(STATUS "HAVE_OPENMP: NOT FOUND")
 endif()
 
 FetchContent_Declare(
