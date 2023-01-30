@@ -1,5 +1,7 @@
 # `r-pfbwt`
 
+[![CMake](https://github.com/marco-oliva/r-pfbwt/actions/workflows/cmake.yml/badge.svg)](https://github.com/marco-oliva/r-pfbwt/actions/workflows/cmake.yml)
+
 `r-pfbwt` is a tool to build the run-length encoded *BWT* and the SA values at the run heads from the prefix-free 
 parsing of the input data.
 
