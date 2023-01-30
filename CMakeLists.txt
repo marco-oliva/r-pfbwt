@@ -159,8 +159,8 @@ include_directories(${cli11_SOURCE_DIR}/include)
 # PFP-DS
 FetchContent_Declare(
         pfp_ds
-        GIT_REPOSITORY git@github.com:marco-oliva/PFP-DS.git
-        GIT_TAG        easy_hard_algo
+        GIT_REPOSITORY https://github.com/marco-oliva/PFP-DS.git
+        GIT_TAG        main
 )
 FetchContent_GetProperties(pfp_ds)
 if(NOT pfp_ds_POPULATED)
@@ -236,23 +236,21 @@ else()
     set(MALLOC_COUNT_SOURCES "")
 endif()
 
-# add_library(rpfbwt ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
-
 ################################################################################
 # Tests
 
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
 
-    add_executable(unit_tests_rpfbwt32 tests/unit_tests.cpp)
-    target_link_libraries(unit_tests_rpfbwt32 Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
+    add_executable(rpfbwt32_unit_tests tests/unit_tests.cpp)
+    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring)
 
-    add_executable(unit_tests_rpfbwt64 tests/unit_tests.cpp)
-    target_link_libraries(unit_tests_rpfbwt64 Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
+    add_executable(rpfbwt64_unit_tests tests/unit_tests.cpp)
+    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring)
 
     enable_testing()
-    add_test(NAME unit_tests_rpfbwt32 COMMAND unit_tests_rpfbwt32 [small])
-    add_test(NAME unit_tests_rpfbwt64 COMMAND unit_tests_rpfbwt64 [small])
+    add_test(NAME rpfbwt32_unit_tests COMMAND rpfbwt32_unit_tests [small])
+    add_test(NAME rpfbwt64_unit_tests COMMAND rpfbwt64_unit_tests [small])
 endif()
 
 ################################################################################

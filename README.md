@@ -48,3 +48,31 @@ Options:
 --version                   Version number.
 --configure                 Read an ini file
 ```
+
+## Citation
+
+Please, if you use this tool in an academic setting cite the following papers:
+
+```
+@article{oliva2023recursiveBWT,
+  title={Recursive Prefix-Free Parsing for Building Big BWTs},
+  author={Oliva, Marco and Gagie, Travis and Boucher, Christina},
+  journal={bioRxiv},
+  pages={2023--01},
+  year={2023},
+  publisher={Cold Spring Harbor Laboratory},
+  doi = {10.1101/2023.01.18.524557}
+}
+```
+
+```
+@article {oliva2023recursiveRI,
+    title = {Building a Pangenome Alignment Index via Recursive Prefix-Free Parsing},
+	author={Oliva, Marco and Gagie, Travis and Boucher, Christina},
+	journal={bioRxiv},
+    pages={2023--01},
+    year={2023},
+    publisher={Cold Spring Harbor Laboratory}
+    doi = {10.1101/2023.01.26.525723},
+}
+```
