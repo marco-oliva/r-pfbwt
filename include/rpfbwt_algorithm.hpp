@@ -443,7 +443,7 @@ public:
                     }
 
                     // make a priority queue and add elements to it
-                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
+                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<pq_t>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
 
                     while (not pq.empty())
@@ -506,7 +506,7 @@ public:
     
                             // make a priority queue from the inverted lists
                             typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
-                            std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                            std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                             for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
                             
                             // now pop elements from the priority queue and write out the corresponding character
@@ -637,7 +637,7 @@ public:
                     }
     
                     // make a priority queue and add elements to it
-                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
+                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<pq_t>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
     
                     while (not pq.empty())
@@ -694,7 +694,7 @@ public:
         
                         // make a priority queue from the inverted lists
                         typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
-                        std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                        std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                         for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
         
                         // now pop elements from the priority queue and write out the corresponding character
