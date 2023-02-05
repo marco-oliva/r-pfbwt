@@ -262,9 +262,12 @@ private:
         spdlog::info("Reading in l1 frequencies");
         
         // get l1 parse size to get appropriate int size for occurrences
-    
-        std::filesystem::path parse_path(std::string(l1_prefix + ".parse"));
-        std::size_t parse_size = std::filesystem::file_size(parse_path) / sizeof(uint32_t);
+        std::string parse_path = l1_prefix + ".parse";
+        std::size_t parse_size = 0;
+        struct stat64 stat_buf;
+        int rc = stat64(parse_path.c_str(), &stat_buf);
+        if (rc == 0) { parse_size = (stat_buf.st_size / sizeof(parse_int_type)); }
+        else { spdlog::error("Error while reading parse size."); std::exit(1);}
 
         spdlog::info("l1 parse size: {} bytes", parse_size * sizeof(uint32_t));
     
@@ -440,7 +443,7 @@ public:
                     }
 
                     // make a priority queue and add elements to it
-                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
+                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<pq_t>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
 
                     while (not pq.empty())
@@ -493,7 +496,7 @@ public:
                                 assert(adj_l1_pid >= int_shift);
                                 parse_int_type l1_pid = adj_l1_pid - int_shift;
     
-                                if (pids.contains(l1_pid))
+                                if (pids.find(l1_pid) != pids.end())
                                 {
                                     ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pfp.dict.colex_id[c_it] + 1]));
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
@@ -503,7 +506,7 @@ public:
     
                             // make a priority queue from the inverted lists
                             typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
-                            std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                            std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                             for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
                             
                             // now pop elements from the priority queue and write out the corresponding character
@@ -634,7 +637,7 @@ public:
                     }
     
                     // make a priority queue and add elements to it
-                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<>> pq;
+                    std::priority_queue<pq_t, std::vector<pq_t>, std::greater<pq_t>> pq;
                     for (std::size_t vi = 0; vi < v.size(); vi++) { pq.push({ v[vi].get()[0].first, { vi, 0 } }); }
     
                     while (not pq.empty())
@@ -670,8 +673,8 @@ public:
                             parse_int_type adj_l1_pid = l2_pfp.dict.d[l2_pfp.dict.select_b_d(l2_pid + 1) - (l2_M_entry.len + 2)];
                             assert(adj_l1_pid >= int_shift);
                             parse_int_type l1_pid = adj_l1_pid - int_shift;
-            
-                            if (pids.contains(l1_pid))
+    
+                            if (pids.find(l1_pid) != pids.end())
                             {
                                 ilists.push_back(std::ref(l2_pfp.bwt_p_ilist[l2_pid]));
                                 ilists_e_arrays.push_back(std::ref(E_arrays[l2_pid - 1]));
@@ -691,7 +694,7 @@ public:
         
                         // make a priority queue from the inverted lists
                         typedef std::pair<uint_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
-                        std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<>> ilist_pq;
+                        std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                         for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
         
                         // now pop elements from the priority queue and write out the corresponding character

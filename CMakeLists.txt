@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(r-pfbwt)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -16,7 +16,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # Version number
 SET(VERSION_MAJOR "0")
 SET(VERSION_MINOR "1")
-SET(VERSION_PATCH "0")
+SET(VERSION_PATCH "1")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
@@ -35,12 +35,10 @@ execute_process(
 message(STATUS "Git current branch: ${GIT_BRANCH}")
 message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
 
-message(STATUS "Generating version.hpp")
+message(STATUS "Generating version.cpp")
 configure_file(
-        ${PROJECT_SOURCE_DIR}/include/version.hpp.in
-        ${PROJECT_BINARY_DIR}/generated/version.hpp)
-
-include_directories(${PROJECT_BINARY_DIR}/generated)
+        ${PROJECT_SOURCE_DIR}/src/version.cpp.in
+        ${PROJECT_BINARY_DIR}/generated/version.cpp)
 
 ################################################################################
 # Compiler and linker flags
@@ -281,10 +279,12 @@ endif()
 ################################################################################
 # Targets
 
-add_executable(rpfbwt32 rpfbwt.cpp)
+file(GLOB SOURCES_GENERATED ${PROJECT_BINARY_DIR}/generated/*.cpp)
+
+add_executable(rpfbwt32 rpfbwt.cpp ${SOURCES_GENERATED})
 target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
-add_executable(rpfbwt64 rpfbwt.cpp)
+add_executable(rpfbwt64 rpfbwt.cpp ${SOURCES_GENERATED})
 target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
 ################################################################################

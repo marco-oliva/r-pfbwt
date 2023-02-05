@@ -1,0 +1,25 @@
+//
+//  version.cpp
+//
+//  Copyright 2023 Marco Oliva. All rights reserved.
+//
+
+#include <version.hpp>
+
+std::string rpfbwt::Version::RPFBWT_GIT_BRANCH = "@GIT_BRANCH@";
+std::string rpfbwt::Version::RPFBWT_GIT_COMMIT_HASH = "@GIT_COMMIT_HASH@";
+int rpfbwt::Version::RPFBWT_MAJOR = @VERSION_MAJOR@;
+int rpfbwt::Version::RPFBWT_MINOR = @VERSION_MINOR@;
+int rpfbwt::Version::RPFBWT_PATCH = @VERSION_PATCH@;
+
+void rpfbwt::Version::print()
+{
+    std::cout
+    << RPFBWT_GIT_BRANCH << ":"
+    << RPFBWT_GIT_COMMIT_HASH << ":"
+    << " "
+    << RPFBWT_MAJOR << "." << RPFBWT_MINOR << "." << RPFBWT_PATCH
+    << std::endl;
+    
+    exit(0);
+}
