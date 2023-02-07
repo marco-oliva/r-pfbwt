@@ -66,7 +66,7 @@ void read_fasta_file(const char *filename, std::vector<char_type>& v, std::size_
 
 #include <rpfbwt_algorithm.hpp>
 
-TEST_CASE( "pfp<uint8_t> SA from example, no chunks", "[small]" )
+TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
 {
     size_t w_l1 = 2;
 

@@ -53,16 +53,17 @@ rpfbwt
 Usage: ./rpfbwt32 [OPTIONS]
 
 Options:
--h,--help                   Print this help message and exit
---l1-prefix TEXT REQUIRED   Level 1 Prefix.
---w1 UINT REQUIRED          Level 1 window length.
---w2 UINT REQUIRED          Level 2 window length.
--t,--threads UINT           Number of threads.
---chunks-per-thread UINT    Number of chunks per thread.
---tmp-dir TEXT:DIR          Temporary files directory.
---bwt-only                  Only compute the RLBWT. No SA values.
---version                   Version number.
---configure                 Read an ini file
+  -h,--help                   Print this help message and exit
+  --l1-prefix TEXT REQUIRED   Level 1 Prefix.
+  --w1 UINT REQUIRED          Level 1 window length.
+  --w2 UINT REQUIRED          Level 2 window length.
+  -t,--threads UINT           Number of threads.
+  --chunks UINT:INT in [1 - 1000]
+                              Number of chunks.
+  --tmp-dir TEXT:DIR          Temporary files directory.
+  --bwt-only                  Only compute the RLBWT. No SA values.
+  --version                   Version number.
+  --configure                 Read an ini file
 ```
 
 ## Citation
