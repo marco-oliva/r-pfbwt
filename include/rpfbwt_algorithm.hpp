@@ -249,11 +249,6 @@ private:
         }
         
         spdlog::info("BWT ranges divided in {} chunks.", out.size());
-        if (out.size() > 500)
-        {
-            spdlog::error("Each chunk creates a temporary file on disk. To now overwhelm the filesystem increase the chunk size.");
-            std::exit(1);
-        }
         return out;
     }
     
