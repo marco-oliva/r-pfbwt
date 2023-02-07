@@ -281,7 +281,6 @@ if (ENABLE_MIMALLOC AND ENABLE_MALLOC_COUNT)
     set(ENABLE_MALLOC_COUNT FALSE)
 endif()
 
-
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count")
     set(MALLOC_COUNT_LIBRARIES malloc_count)
