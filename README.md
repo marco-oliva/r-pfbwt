@@ -5,6 +5,20 @@
 `r-pfbwt` is a tool to build the run-length encoded *BWT* and the *SA* values at the run heads from the prefix-free 
 parsing of the input data.
 
+### Docker ###
+`r-pfbwt` is available on docker:
+
+```bash
+docker pull moliva3/r-pfbwt:latest
+docker run moliva3/r-pfbwt:latest rpfbwt32 --help
+```
+
+If using singularity:
+```bash
+singularity pull rpfbwt_sif docker://moliva3/r-pfbwt:latest
+./rpfbwt_sif rpfbwt32 --help
+```
+
 ## Build
 `r-pfbwt` can be built using: 
 
