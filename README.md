@@ -5,7 +5,7 @@
 `r-pfbwt` is a tool to build the run-length encoded *BWT* and the *SA* values at the run heads from the prefix-free 
 parsing of the input data.
 
-### Docker ###
+## Docker
 `r-pfbwt` is available on docker:
 
 ```bash
