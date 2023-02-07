@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ################################################################################
+# Options
+
+option(ENABLE_MALLOC_COUNT "Keep track of allocations with malloc_count."   OFF)
+option(ENABLE_MIMALLOC "Use mimalloc if installed."                         OFF)
+option(BUILD_TESTS "Build unit test."                                       OFF)
+
+################################################################################
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -243,6 +250,24 @@ if(NOT kseq_POPULATED)
 endif()
 include_directories(${kseq_SOURCE_DIR})
 
+# MiMalloc
+if (ENABLE_MIMALLOC)
+    set(MI_BUILD_STATIC OFF)
+    set(MI_BUILD_OBJECT OFF)
+    set(MI_BUILD_TESTS  OFF)
+    FetchContent_Declare(
+            mimalloc
+            GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+            GIT_TAG        v2.0.9
+    )
+    FetchContent_GetProperties(mimalloc)
+    if (NOT mimalloc_POPULATED)
+        FetchContent_MakeAvailable(mimalloc)
+        message(STATUS "Building mimalloc. It will be dynamically linked.")
+        set(MIMALLOC_D_LIB mimalloc)
+    endif()
+endif()
+
 ################################################################################
 # Lib
 
@@ -251,6 +276,11 @@ include_directories(${PROJECT_BINARY_DIR}/generated)
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
+if (ENABLE_MIMALLOC AND ENABLE_MALLOC_COUNT)
+    message(STATUS "mimalloc enabled, disabling malloc count")
+    set(ENABLE_MALLOC_COUNT FALSE)
+endif()
+
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count")
     set(MALLOC_COUNT_LIBRARIES malloc_count)
@@ -258,6 +288,7 @@ else()
     set(MALLOC_COUNT_LIBRARIES "")
 endif()
 
+set(RPFBWT_LIBS ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES} ${MIMALLOC_D_LIB})
 
 ################################################################################
 # Tests
@@ -266,10 +297,10 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
 
     add_executable(rpfbwt32_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
     add_executable(rpfbwt64_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
     enable_testing()
     add_test(NAME rpfbwt32_unit_tests COMMAND rpfbwt32_unit_tests [small])
@@ -282,10 +313,10 @@ endif()
 file(GLOB SOURCES_GENERATED ${PROJECT_BINARY_DIR}/generated/*.cpp)
 
 add_executable(rpfbwt32 rpfbwt.cpp ${SOURCES_GENERATED})
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
 add_executable(rpfbwt64 rpfbwt.cpp ${SOURCES_GENERATED})
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
 ################################################################################
 # Install
