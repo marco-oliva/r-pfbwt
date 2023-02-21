@@ -317,8 +317,10 @@ public:
                 std::vector<parse_int_type>& l2_p_v,
                 std::vector<uint_t>& l2_freq_v,
                 std::size_t l2_w,
+                std::size_t pfp_integer_shift,
                 std::size_t bwt_chunks = default_num_of_chunks)
-    : l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
+    : int_shift(pfp_integer_shift),
+      l1_d(l1_d_v, l1_w, l1_d_comp, true, false, true, true, false, true, false), l1_freq(l1_freq_v),
       l1_cleared(clear_L1_unused_data_structures()),
       l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
       l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
@@ -332,8 +334,9 @@ public:
       rle_chunks(out_rle_name, chunks.size())
     { init_v_table(); }
     
-    rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w,  std::size_t bwt_chunks = default_num_of_chunks)
-    : l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
+    rpfbwt_algo(std::string& l1_prefix, std::size_t l1_w, std::size_t l2_w, std::size_t pfp_integer_shift, std::size_t bwt_chunks = default_num_of_chunks)
+    : int_shift(pfp_integer_shift),
+      l1_d(l1_prefix, l1_w, l1_d_comp, true, false, true, true, false, true, false),
       l1_cleared(clear_L1_unused_data_structures()),
       l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
       l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),

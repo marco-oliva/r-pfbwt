@@ -24,12 +24,14 @@ int main(int argc, char **argv)
     std::size_t threads = 1;
     std::string tmp_dir;
     std::size_t chunks = 50;
+    std::size_t pfp_integer_shift = 10;
     
     bool bwt_only = false;
 
     app.add_option("--l1-prefix", l1_prefix, "Level 1 Prefix.")->configurable()->required();
     app.add_option("--w1", w1, "Level 1 window length.")->configurable()->required();
     app.add_option("--w2", w2, "Level 2 window length.")->configurable()->required();
+    app.add_option("--int-shift", pfp_integer_shift, "Integer shift used while parsing the parse with pfp++.")->configurable();
     app.add_option("-t, --threads", threads, "Number of threads.")->configurable();
     app.add_option("--chunks", chunks, "Number of chunks.")->configurable()->check(CLI::Range(1,1000));
     app.add_option("--tmp-dir", tmp_dir, "Temporary files directory.")->check(CLI::ExistingDirectory)->configurable();
@@ -39,6 +41,9 @@ int main(int argc, char **argv)
     app.allow_windows_style_options();
 
     CLI11_PARSE(app, argc, argv);
+    
+    // Print out configurations
+    spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
     // Check all files needed
     std::string l1_d_path = l1_prefix + ".dict";
@@ -56,7 +61,7 @@ int main(int argc, char **argv)
     // Set tmp dir for rle string
     if (not tmp_dir.empty()) { rle::TempFile::setDirectory(tmp_dir); }
     
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, chunks);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, pfp_integer_shift, chunks);
     if (bwt_only) {rpfbwt_algo.l1_rlebwt(threads); }
     else { rpfbwt_algo.l1_refined_rindex(threads); }
     
