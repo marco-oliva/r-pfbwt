@@ -170,7 +170,7 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
 
     std::size_t chunks = 5;
     std::size_t threads = 12;
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2, chunks);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
     bool all_good = true;
@@ -225,6 +225,7 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
 
     std::string yeast_pfp_path = testfiles_dir + "/yeast.fasta";
     std::size_t w_l1 = 10, w_l2 = 5;
+    uint32_t int_shift = 10;
 
     // Build PFP-DS, sa_support and bwt
     std::less<char> char_comp;
@@ -246,7 +247,7 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
     // Build the ri
     std::size_t chunks = 5;
     std::size_t threads = 12;
-    rpfbwt::rpfbwt_algo<char> rpfbwt_algo(yeast_pfp_path, w_l1, w_l2, chunks);
+    rpfbwt::rpfbwt_algo<char> rpfbwt_algo(yeast_pfp_path, w_l1, w_l2, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
     // Read in the rle bwt
