@@ -54,7 +54,7 @@ private:
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<std::size_t> l1_d_lengths;
-    std::vector<uint64_t> l1_freq; // TODO: Here occ has the same size as the integers used for gsacak. Compatibility issue.
+    std::vector<pfpds::long_type> l1_freq; // TODO: Here occ has the same size as the integers used for gsacak. Compatibility issue.
     bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
@@ -191,7 +191,7 @@ private:
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
             assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
-            uint64_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
@@ -206,7 +206,7 @@ private:
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
-                    uint64_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                    pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                     
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
@@ -252,7 +252,7 @@ private:
         return out;
     }
     
-    std::vector<uint64_t> read_l1_freq(std::string& l1_prefix, std::size_t l1_d_phrases)
+    std::vector<pfpds::long_type> read_l1_freq(std::string& l1_prefix, std::size_t l1_d_phrases)
     {
         spdlog::info("Reading in l1 frequencies");
         
@@ -272,12 +272,12 @@ private:
         else
         { spdlog::info("Reading in 64 bits occ file"); occ_bytes = 8; }
     
-        std::vector<uint64_t> out;
+        std::vector<pfpds::long_type> out;
         out.push_back(0);
         std::ifstream occ_file(std::string(l1_prefix + ".occ"), std::ios::binary);
         for (std::size_t i = 0; i < l1_d_phrases; i++)
         {
-            uint64_t occ_value;
+            pfpds::long_type occ_value;
             occ_file.read((char*)&occ_value, occ_bytes);
             out.push_back(occ_value);
         }
@@ -311,11 +311,11 @@ private:
 public:
     
     rpfbwt_algo(std::vector<dict_l1_data_type>& l1_d_v,
-                std::vector<uint64_t>& l1_freq_v,
+                std::vector<pfpds::long_type>& l1_freq_v,
                 std::size_t l1_w,
                 std::vector<parse_int_type>& l2_d_v,
                 std::vector<parse_int_type>& l2_p_v,
-                std::vector<uint64_t>& l2_freq_v,
+                std::vector<pfpds::long_type>& l2_freq_v,
                 std::size_t l2_w,
                 std::size_t pfp_integer_shift,
                 std::size_t bwt_chunks = default_num_of_chunks)
@@ -372,7 +372,7 @@ public:
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
             assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
-            uint64_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
@@ -393,7 +393,7 @@ public:
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
-                    uint64_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                    pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
@@ -471,7 +471,7 @@ public:
                             // hard-easy suffix, we can fill in the character in pid
                             auto pq_entry = from_same_l2_suffix[0];
                             parse_int_type adj_pid = pids_v[pq_entry.second.first];
-                            uint64_t freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
+                            pfpds::long_type freq = v[pq_entry.second.first].get()[pq_entry.second.second].second;
                             dict_l1_data_type c = l1_d.d[l1_d.select_b_d(adj_pid - int_shift + 1) - (suffix_length + 2)]; // end of next phrases
                             
                             rle_out(c, freq);
@@ -484,7 +484,7 @@ public:
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
                             // get inverted lists of corresponding phrases
-                            std::vector<std::reference_wrapper<std::vector<uint64_t>>> ilists;
+                            std::vector<std::reference_wrapper<std::vector<pfpds::long_type>>> ilists;
                             std::vector<dict_l1_data_type> ilist_corresponding_chars;
                             for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it ++)
                             {
@@ -503,7 +503,7 @@ public:
                             }
     
                             // make a priority queue from the inverted lists
-                            typedef std::pair<uint64_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
+                            typedef std::pair<pfpds::long_type, std::pair<std::size_t, std::size_t>> ilist_pq_t;
                             std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                             for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
                             
@@ -569,7 +569,7 @@ public:
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
             assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
-            uint64_t suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
+            pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
@@ -590,7 +590,7 @@ public:
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
-                    uint64_t new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
+                    pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
                     {
@@ -661,7 +661,7 @@ public:
                         auto& l2_M_entry = l2_pfp.M[curr_l2_row];
         
                         // get inverted lists of corresponding phrases
-                        std::vector<std::reference_wrapper<std::vector<uint64_t>>> ilists;
+                        std::vector<std::reference_wrapper<std::vector<pfpds::long_type>>> ilists;
                         std::vector<std::reference_wrapper<std::vector<std::size_t>>> ilists_e_arrays;
                         std::vector<std::size_t> ilist_corresponding_sa_expanded_values;
                         for (std::size_t c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it++)
@@ -691,7 +691,7 @@ public:
                         }
         
                         // make a priority queue from the inverted lists
-                        typedef std::pair<uint64_t, std::pair<std::size_t, std::size_t>> ilist_pq_t;
+                        typedef std::pair<pfpds::long_type, std::pair<std::size_t, std::size_t>> ilist_pq_t;
                         std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
                         for (std::size_t il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
         
