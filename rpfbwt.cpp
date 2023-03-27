@@ -24,6 +24,7 @@ int main(int argc, char **argv)
     std::size_t threads = 1;
     std::string tmp_dir;
     std::size_t chunks = 50;
+    uint32_t int_shift = 10;
     
     bool bwt_only = false;
 
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
     app.add_option("--w2", w2, "Level 2 window length.")->configurable()->required();
     app.add_option("-t, --threads", threads, "Number of threads.")->configurable();
     app.add_option("--chunks", chunks, "Number of chunks.")->configurable()->check(CLI::Range(1,1000));
+    app.add_option("--integer-shift", int_shift, "Integer shift used during parsing.")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Temporary files directory.")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("--bwt-only", bwt_only, "Only compute the RLBWT. No SA values.")->configurable();
     app.add_flag_callback("--version",rpfbwt::Version::print,"Version number.");
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
     // Set tmp dir for rle string
     if (not tmp_dir.empty()) { rle::TempFile::setDirectory(tmp_dir); }
     
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, chunks);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(l1_prefix, w1, w2, int_shift, chunks);
     if (bwt_only) {rpfbwt_algo.l1_rlebwt(threads); }
     else { rpfbwt_algo.l1_refined_rindex(threads); }
     

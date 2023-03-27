@@ -296,15 +296,11 @@ set(RPFBWT_LIBS ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES} ${MIMALLOC_D_LIB})
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
 
-    add_executable(rpfbwt32_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt32_unit_tests Catch2::Catch2 sdsl gsacak divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
-
-    add_executable(rpfbwt64_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(rpfbwt64_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
+    add_executable(rpfbwt_unit_tests tests/unit_tests.cpp)
+    target_link_libraries(rpfbwt_unit_tests Catch2::Catch2 sdsl gsacak64 divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
     enable_testing()
-    add_test(NAME rpfbwt32_unit_tests COMMAND rpfbwt32_unit_tests [small])
-    add_test(NAME rpfbwt64_unit_tests COMMAND rpfbwt64_unit_tests [small])
+    add_test(NAME rpfbwt_unit_tests COMMAND rpfbwt_unit_tests [small])
 endif()
 
 ################################################################################
@@ -312,16 +308,13 @@ endif()
 
 file(GLOB SOURCES_GENERATED ${PROJECT_BINARY_DIR}/generated/*.cpp)
 
-add_executable(rpfbwt32 rpfbwt.cpp ${SOURCES_GENERATED})
-target_link_libraries(rpfbwt32 dl gsacak sdsl divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
-
-add_executable(rpfbwt64 rpfbwt.cpp ${SOURCES_GENERATED})
-target_link_libraries(rpfbwt64 dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
+add_executable(rpfbwt rpfbwt.cpp ${SOURCES_GENERATED})
+target_link_libraries(rpfbwt dl gsacak64 sdsl divsufsort divsufsort64 rlestring ${RPFBWT_LIBS})
 
 ################################################################################
 # Install
 
-install(TARGETS rpfbwt32 rpfbwt64)
+install(TARGETS rpfbwt)
 
 ################################################################################
 # CPack
