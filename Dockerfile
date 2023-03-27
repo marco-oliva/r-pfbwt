@@ -15,7 +15,6 @@ RUN cmake -DENABLE_MIMALLOC=ON .. \
 # Get binaries
 WORKDIR /rpfbwt/bin
 RUN cp \
-    /usr/src/rpfbwt/build/rpfbwt32 \
-    /usr/src/rpfbwt/build/rpfbwt64  \
+    /usr/src/rpfbwt/build/rpfbwt \
     .
 ENV PATH /rpfbwt/bin:$PATH
