@@ -9,7 +9,7 @@
 
 #include <filesystem>
 #include <sys/stat.h>
-// #include <omp.h>
+#include <omp.h>
 
 #include <pfp/pfp.hpp>
 
@@ -54,7 +54,7 @@ private:
     std::less<dict_l1_data_type> l1_d_comp;
     pfpds::dictionary<dict_l1_data_type> l1_d;
     std::vector<pfpds::long_type> l1_d_lengths;
-    std::vector<pfpds::long_type> l1_freq; // TODO: Here occ has the same size as the integers used for gsacak. Compatibility issue.
+    std::vector<pfpds::long_type> l1_freq;
     bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
@@ -749,11 +749,11 @@ public:
     void l1_rlebwt(pfpds::long_type threads = 1)
     {
         // Set threads accordingly to configuration
-        //omp_set_num_threads(threads);
+        omp_set_num_threads(threads);
     
         // ----------
         // Compute run length encoded bwt and run heads positions
-        //#pragma omp parallel for schedule(dynamic) default(none)
+        #pragma omp parallel for schedule(dynamic) default(none)
         for (pfpds::long_type i = 0; i < chunks.size(); i++)
         {
             l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
@@ -768,11 +768,11 @@ public:
     void l1_refined_rindex(pfpds::long_type threads = 1)
     {
         // Set threads accordingly to configuration
-        //omp_set_num_threads(threads);
+        omp_set_num_threads(threads);
         
         // ----------
         // Compute run length encoded bwt and run heads positions
-        //#pragma omp parallel for schedule(dynamic) default(none)
+        #pragma omp parallel for schedule(dynamic) default(none)
         for (pfpds::long_type i = 0; i < chunks.size(); i++)
         {
             l1_bwt_chunk(chunks[i], rle_chunks.get_encoder(i));
@@ -803,7 +803,7 @@ public:
         std::vector<std::string> sa_chunks_tmp_files;
         for (pfpds::long_type i = 0; i < chunks.size(); i++) { sa_chunks_tmp_files.push_back(rle::TempFile::getName("sa_chunk")); }
         
-        //#pragma omp parallel for schedule(dynamic) default(none) shared(run_heads_bv, sa_chunks_tmp_files)
+        #pragma omp parallel for schedule(dynamic) default(none) shared(run_heads_bv, sa_chunks_tmp_files)
         for (pfpds::long_type i = 0; i < chunks.size(); i++)
         {
             l1_sa_values_chunk(chunks[i], run_heads_bv, sa_chunks_tmp_files[i]);
