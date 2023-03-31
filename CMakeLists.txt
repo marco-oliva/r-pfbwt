@@ -165,7 +165,7 @@ include_directories(${cli11_SOURCE_DIR}/include)
 FetchContent_Declare(
         pfp_ds
         GIT_REPOSITORY https://github.com/marco-oliva/PFP-DS.git
-        GIT_TAG        main
+        GIT_TAG        moving_to_sdsl_vectors
 )
 FetchContent_GetProperties(pfp_ds)
 if(NOT pfp_ds_POPULATED)

@@ -36,7 +36,7 @@ public:
         l2_colex_comp(const pfpds::dictionary<dict_l1_data_type>& l1_d_ref, parse_int_type shift)
         : l1_d(l1_d_ref) , int_shift(shift) {}
         
-        bool operator()(parse_int_type l, parse_int_type r)
+        bool operator()(parse_int_type l, parse_int_type r) const
         {
             assert(l != r);
             if (l < int_shift) { return true; }
@@ -52,17 +52,17 @@ private:
     std::string out_rle_name;
     
     std::less<dict_l1_data_type> l1_d_comp;
-    pfpds::dictionary<dict_l1_data_type> l1_d;
+    const pfpds::dictionary<dict_l1_data_type>& l1_d;
     std::vector<pfpds::long_type> l1_d_lengths;
     std::vector<pfpds::long_type> l1_freq;
-    bool l1_cleared = false;
     
     l2_colex_comp l2_comp;
-    pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp;
+    const pfpds::dictionary<parse_int_type, l2_colex_comp>& l2_d;
+    const pfpds::parse& l2_p;
+    const pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl>& l2_pfp;
     std::vector<pfpds::long_type> l2_d_lengths;
     std::vector<std::vector<pfpds::long_type>> E_arrays;
     pfpds::long_type l1_n = 0; // also used to initialize l1_n
-    bool l2_cleared = false;
     
     std::vector<std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
 
@@ -72,11 +72,10 @@ private:
     rle::RLEString::RLEncoderMerger rle_chunks;
     
     template <typename dict_char_type>
-    std::vector<pfpds::long_type> init_d_lengths(const std::vector<dict_char_type>& dict_array)
+    void
+    init_d_lengths(const std::vector<dict_char_type>& dict_array, std::vector<pfpds::long_type>& out)
     {
         spdlog::info("Precomputing d lengths");
-        
-        std::vector<pfpds::long_type> out;
         
         pfpds::long_type curr_length = 0;
         for (pfpds::long_type i = 0; i < dict_array.size(); i++)
@@ -84,11 +83,10 @@ private:
             curr_length += 1;
             if (dict_array[i] == EndOfWord) { out.push_back(curr_length - 1); curr_length = 0; }
         }
-        
-        return out;
     }
     
-    void init_v_table()
+    void
+    init_v_table()
     {
         spdlog::info("Creating v table");
         
@@ -124,7 +122,8 @@ private:
         }
     }
     
-    pfpds::long_type init_E_arrays()
+    pfpds::long_type
+    init_E_arrays()
     {
         spdlog::info("Creating E arrays");
         
@@ -161,20 +160,18 @@ private:
                 E_arrays[l2_pfp.pars.p[sa_value - 1] - 1].push_back(end_positions[sa_value - 1]);
             }
         }
-        
+    
         return end_pos_from_start;
     }
     
     // Computes ranges for parallel computation
     // suffix start, suffix end, this_left, this_row
-    std::vector<std::tuple<pfpds::long_type, pfpds::long_type, pfpds::long_type, pfpds::long_type>>
+    void
     compute_chunks(pfpds::long_type num_of_chunks)
     {
         spdlog::info("Computing chunks for parallel execution. Total input size: {}. Requested chunks: {}", l1_n, num_of_chunks);
         
-        pfpds::long_type chunk_size = (num_of_chunks > 1) ? (l1_n / (num_of_chunks - 1)) : l1_n + 1;
-        
-        std::vector<std::tuple<pfpds::long_type, pfpds::long_type, pfpds::long_type, pfpds::long_type>> out;
+        pfpds::long_type chunk_size = (num_of_chunks > 1) ? (l1_n / (num_of_chunks)) : l1_n + 1;
         
         // Go through the suffixes of D and compute chunks
         pfpds::long_type i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
@@ -227,7 +224,7 @@ private:
                 if (l_right - chunk_start > chunk_size)
                 {
                     // store SA_d range for this chunk
-                    out.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
+                    chunks.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
                     
                     // prepare for next iteration
                     chunk_suffix_start = i;
@@ -242,17 +239,18 @@ private:
         }
         
         // add last_chunk
-        if ((out.empty()) or (std::get<1>(out.back()) < i))
+        if ((chunks.empty()) or (std::get<1>(chunks.back()) < i))
         {
             // store SA_d range for last chunk
-            out.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
+            chunks.emplace_back(chunk_suffix_start, i, chunk_start, chunk_row_start);
         }
         
-        spdlog::info("BWT ranges divided in {} chunks.", out.size());
-        return out;
+        assert(chunks.size() == num_of_chunks);
+        spdlog::info("BWT ranges divided in {} chunks.", chunks.size());
     }
     
-    std::vector<pfpds::long_type> read_l1_freq(std::string& l1_prefix, pfpds::long_type l1_d_phrases)
+    void
+    read_l1_freq(std::string& l1_prefix, pfpds::long_type l1_d_phrases)
     {
         spdlog::info("Reading in l1 frequencies");
         
@@ -272,84 +270,106 @@ private:
         else
         { spdlog::info("Reading in 64 bits occ file"); occ_bytes = 8; }
     
-        std::vector<pfpds::long_type> out;
-        out.push_back(0);
+        l1_freq.push_back(0);
         std::ifstream occ_file(std::string(l1_prefix + ".occ"), std::ios::binary);
         for (pfpds::long_type i = 0; i < l1_d_phrases; i++)
         {
             pfpds::long_type occ_value;
             occ_file.read((char*)&occ_value, occ_bytes);
-            out.push_back(occ_value);
+            l1_freq.push_back(occ_value);
         }
-        
-        return out;
-    }
-    
-    bool clear_L1_unused_data_structures()
-    {
-        spdlog::info("Removing unused L1 data structures.");
-        l1_d.inv_colex_id.resize(0);
-        l1_d.colex_daD.resize(0);
-        l1_d.isaD.resize(0);
-        return true;
-    }
-    
-    bool clear_L2_unused_data_structures()
-    {
-        spdlog::info("Removing unused L2 data structures.");
-        l2_pfp.dict.inv_colex_id.resize(0);
-        l2_pfp.dict.colex_daD.resize(0);
-        l2_pfp.dict.lcpD.resize(0);
-        l2_pfp.dict.daD.resize(0);
-        l2_pfp.dict.isaD.resize(0);
-        l2_pfp.pars.isaP.resize(0);
-        l2_pfp.pars.saP.resize(0);
-        l2_pfp.pars.lcpP.resize(0);
-        return true;
     }
     
 public:
     
-    rpfbwt_algo(std::vector<dict_l1_data_type>& l1_d_v,
-                std::vector<pfpds::long_type>& l1_freq_v,
-                pfpds::long_type l1_w,
-                std::vector<parse_int_type>& l2_d_v,
-                std::vector<parse_int_type>& l2_p_v,
-                std::vector<pfpds::long_type>& l2_freq_v,
-                pfpds::long_type l2_w,
-                pfpds::long_type pfp_integer_shift,
-                pfpds::long_type bwt_chunks = default_num_of_chunks)
-    : int_shift(pfp_integer_shift),
-      l1_d(l1_d_v, l1_w, l1_d_comp, true, true, true, true, false, true, false), l1_freq(l1_freq_v),
-      l1_cleared(clear_L1_unused_data_structures()),
-      l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
-      l1_prefix("mem"), out_rle_name(l1_prefix + ".rlebwt"),
-      l2_comp(l1_d, int_shift),
-      l2_pfp(l2_d_v, l2_comp, l2_p_v, l2_freq_v, l2_w, int_shift, false, true),
-      l2_d_lengths(init_d_lengths<uint32_t>(l2_pfp.dict.d)),
-      l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      l1_n(init_E_arrays()),
-      l2_cleared(clear_L2_unused_data_structures()),
-      chunks(compute_chunks(bwt_chunks)),
-      rle_chunks(out_rle_name, chunks.size())
-    { init_v_table(); }
+    rpfbwt_algo(
+    const pfpds::dictionary<dict_l1_data_type>& l1_d_r,
+    const std::vector<pfpds::long_type>& l1_freq_r,
+    const pfpds::dictionary<parse_int_type, l2_colex_comp>& l2_d_r,
+    const pfpds::parse& l2_p_r,
+    pfpds::long_type pfp_integer_shift,
+    pfpds::long_type bwt_chunks = default_num_of_chunks)
+    :
+    int_shift(pfp_integer_shift),
+    l1_d(l1_d_r),
+    l1_prefix("mem"),
+    out_rle_name(l1_prefix + ".rlebwt"),
+    l2_comp(l1_d, int_shift),
+    l2_d(l2_d_r),
+    l2_p(l2_d_r),
+    l2_pfp(l2_d, l2_p),
+    l2_pfp_v_table(l2_d.alphabet_size),
+    rle_chunks(out_rle_name, bwt_chunks)
+    {
+        // ----------
+        for (pfpds::long_type i = 0; i < l1_d.saD.size(); i++)
+        {
+            std::cout << i << ": " << l1_d.saD[i] << std::endl;
+        }
+        // ----------
+        init_d_lengths<dict_l1_data_type>(l1_d.d, l1_d_lengths);
+        init_d_lengths<parse_int_type>(l2_pfp.dict.d, l2_d_lengths);
+        init_v_table();
+        this->l1_n = init_E_arrays();
+        compute_chunks(bwt_chunks);
+    }
+    
+    rpfbwt_algo(
+    std::vector<dict_l1_data_type>& l1_d_v,
+    std::vector<pfpds::long_type>& l1_freq_v,
+    pfpds::long_type l1_w,
+    std::vector<parse_int_type>& l2_d_v,
+    std::vector<parse_int_type>& l2_p_v,
+    std::vector<pfpds::long_type>& l2_freq_v,
+    pfpds::long_type l2_w,
+    pfpds::long_type pfp_integer_shift,
+    pfpds::long_type bwt_chunks = default_num_of_chunks)
+    :
+    int_shift(pfp_integer_shift),
+    l1_d(l1_d_v, l1_w, l1_d_comp, true, true, true, true, false, true, false),
+    l1_freq(l1_freq_v),
+    l1_prefix("mem"),
+    out_rle_name(l1_prefix + ".rlebwt"),
+    l2_comp(l1_d, int_shift),
+    l2_d(l2_d_v, l2_w, l2_comp),
+    l2_p(l2_p_v, l2_d.n_phrases() + 1),
+    l2_pfp(l2_d, l2_p),
+    l2_pfp_v_table(l2_d.alphabet_size),
+    rle_chunks(out_rle_name, bwt_chunks)
+    {
+        // ----------
+        for (pfpds::long_type i = 0; i < l1_d.saD.size(); i++)
+        {
+            std::cout << i << ": " << l1_d.saD[i] << std::endl;
+        }
+        // ----------
+        init_d_lengths<dict_l1_data_type>(l1_d.d, l1_d_lengths);
+        init_d_lengths<parse_int_type>(l2_pfp.dict.d, l2_d_lengths);
+        init_v_table();
+        this->l1_n = init_E_arrays();
+        compute_chunks(bwt_chunks);
+    }
     
     rpfbwt_algo(std::string& l1_prefix, pfpds::long_type l1_w, pfpds::long_type l2_w, pfpds::long_type pfp_integer_shift, pfpds::long_type bwt_chunks = default_num_of_chunks)
-    : int_shift(pfp_integer_shift),
-      l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, false, true, false),
-      l1_cleared(clear_L1_unused_data_structures()),
-      l1_d_lengths(init_d_lengths<dict_l1_data_type>(l1_d.d)),
-      l1_prefix(l1_prefix), out_rle_name(l1_prefix + ".rlebwt"),
-      l1_freq(read_l1_freq(l1_prefix, l1_d.n_phrases())),
-      l2_comp(l1_d, int_shift),
-      l2_pfp(l1_prefix + ".parse", l2_w, l2_comp, int_shift, false, true),
-      l2_d_lengths(init_d_lengths<uint32_t>(l2_pfp.dict.d)),
-      l2_pfp_v_table(l2_pfp.dict.alphabet_size),
-      l1_n(init_E_arrays()),
-      l2_cleared(clear_L2_unused_data_structures()),
-      chunks(compute_chunks(bwt_chunks)),
-      rle_chunks(out_rle_name, chunks.size())
-    { init_v_table(); }
+    :
+    int_shift(pfp_integer_shift),
+    l1_d(l1_prefix, l1_w, l1_d_comp, true, true, true, true, false, true, false),
+    l1_prefix(l1_prefix),
+    out_rle_name(l1_prefix + ".rlebwt"),
+    l2_comp(l1_d, int_shift),
+    l2_d(l1_prefix + ".parse", l2_w, l2_comp),
+    l2_p(l1_prefix + ".parse", l2_d.n_phrases() + 1),
+    l2_pfp(l2_d, l2_p),
+    l2_pfp_v_table(l2_d.alphabet_size),
+    rle_chunks(out_rle_name, bwt_chunks)
+    {
+        init_d_lengths<dict_l1_data_type>(l1_d.d, l1_d_lengths);
+        read_l1_freq(l1_prefix, l1_d.n_phrases());
+        init_d_lengths<parse_int_type>(l2_pfp.dict.d, l2_d_lengths);
+        init_v_table();
+        this->l1_n = init_E_arrays();
+        compute_chunks(bwt_chunks);
+    }
     
     void
     l1_bwt_chunk(
@@ -357,6 +377,13 @@ public:
     rle::RLEString::RLEncoder& rle_out)
     {
         pfpds::long_type i = std::get<0>(chunk);
+        
+        // ----------
+        for (pfpds::long_type i = 0; i < l1_d.saD.size(); i++)
+        {
+            std::cout << i << ": " << l1_d.saD[i] << std::endl;
+        }
+        // ----------
         
         dict_l1_data_type prev_char = 0;
     
@@ -368,9 +395,9 @@ public:
         pfpds::long_type row = std::get<3>(chunk);
         while (i < std::get<1>(chunk))
         {
-            auto sn = l1_d.saD[i];
+            pfpds::long_type sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
-            auto phrase = l1_d.daD[i] + 1;
+            pfpds::long_type phrase = l1_d.daD[i] + 1;
             assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
             pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
@@ -390,8 +417,8 @@ public:
             
                 if (i < l1_d.saD.size())
                 {
-                    auto new_sn = l1_d.saD[i];
-                    auto new_phrase = l1_d.daD[i] + 1;
+                    pfpds::long_type new_sn = l1_d.saD[i];
+                    pfpds::long_type new_phrase = l1_d.daD[i] + 1;
                     assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
                     pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
