@@ -10,13 +10,13 @@ parsing of the input data.
 
 ```bash
 docker pull moliva3/r-pfbwt:latest
-docker run moliva3/r-pfbwt:latest rpfbwt32 --help
+docker run moliva3/r-pfbwt:latest rpfbwt --help
 ```
 
 If using singularity:
 ```bash
 singularity pull rpfbwt_sif docker://moliva3/r-pfbwt:latest
-./rpfbwt_sif rpfbwt32 --help
+./rpfbwt_sif rpfbwt --help
 ```
 
 ## Build
@@ -41,7 +41,7 @@ sequences of yeast.
 wget https://gitlab.com/manzai/Big-BWT/-/blob/f67022fe74dae0234e516324103613a0fdd58a6e/yeast.fasta -O ./yeast.fasta
 pfp++ -f yeast.fasta -w 10 -p 100 --output-occurrences 
 pfp++ -i yeast.fasta.parse -w 5 -p 11 
-rpfbwt32  --l1-prefix yeast.fasta --w1 10 --w2 5 --threads 10
+rpfbwt  --l1-prefix yeast.fasta --w1 10 --w2 5 --threads 10
 ```
 
 
@@ -50,7 +50,7 @@ We report here all the available parameters for `r-pfbwt`
 
 ```shell
 rpfbwt
-Usage: ./rpfbwt32 [OPTIONS]
+Usage: rpfbwt [OPTIONS]
 
 Options:
   -h,--help                   Print this help message and exit
@@ -60,6 +60,7 @@ Options:
   -t,--threads UINT           Number of threads.
   --chunks UINT:INT in [1 - 1000]
                               Number of chunks.
+  --integer-shift UINT        Integer shift used during parsing.
   --tmp-dir TEXT:DIR          Temporary files directory.
   --bwt-only                  Only compute the RLBWT. No SA values.
   --version                   Version number.
