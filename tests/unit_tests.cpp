@@ -168,9 +168,18 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
                       "ATTTTTCCCCCCCCTTTAAAAAAACCCAAAACAAGGGGGTGGGGGCCCCCGGGGGGGGCCCCCCCCAAGCCAAAAACGAAAAA"
                       "ACCCCCGTCCTTTTCACCCCACGGGTGGTGTGTTTTTTTTGGGGGTGGGGCCCGCGGG";
 
+
+    // Create PFP fpr rpfbwt
+    std::less<uint8_t> char_comp;
+    pfpds::dictionary<uint8_t> l1_d(dict_l1, w_l1, char_comp);
+    rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d, int_shift);
+    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(dict_l2, w_l2, l2_comp);
+    pfpds::parse l2_p(parse_l2, l2_d.n_phrases() + 1);
+    pfpds::pf_parsing<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp(l2_d, l2_p, true, true);
+
     std::size_t chunks = 5;
     std::size_t threads = 12;
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(dict_l1, freq_l1, w_l1, dict_l2, parse_l2, freq_l2, w_l2, int_shift, chunks);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo("mem", l1_d, l2_pfp, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
     bool all_good = true;
@@ -189,10 +198,11 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
     REQUIRE(all_good);
 
     // Check SA
-    std::less<uint8_t> char_comp;
     std::vector<uint32_t> parse_l1_copy(parse_l1);
     parse_l1_copy.push_back(0);
-    pfpds::pf_parsing<uint8_t> pfp(dict_l1, char_comp, parse_l1_copy, freq_l1, 2);
+    pfpds::dictionary<uint8_t> dictionary(dict_l1, w_l1, char_comp);
+    pfpds::parse parsing(parse_l1_copy, dictionary.n_phrases() + 1);
+    pfpds::pf_parsing<uint8_t> pfp(dictionary, parsing, true, true);
     pfpds::pfp_sa_support<uint8_t> sa_support(pfp);
 
     std::vector<std::size_t> sa_values;
@@ -201,18 +211,18 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
     sa_values_is.read((char*)&sa_values_size, sizeof(std::size_t));
     sa_values.resize(sa_values_size);
     sa_values_is.read((char*)&sa_values[0], sizeof(std::size_t) * sa_values.size());
-    
+
     std::size_t sa_i = 0;
     rle::RLEString::RunIterator rle_iterator(rle_bwt);
     while (not rle_iterator.end())
     {
         rle::RunType run = *rle_iterator;
         std::size_t offset = rle::RunTraits::start(run);
-        
+
         std::size_t from_sa_support = sa_support(offset);
         all_good = all_good and (sa_values[sa_i] == from_sa_support);
         if (not all_good) { mismatch = sa_i; break; }
-    
+
         rle_iterator.operator++(); sa_i++;
     }
     REQUIRE(all_good);
@@ -228,18 +238,20 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
     uint32_t int_shift = 10;
 
     // Build PFP-DS, sa_support and bwt
-    std::less<char> char_comp;
-    pfpds::pf_parsing<char> pfp(yeast_pfp_path, w_l1, char_comp);
-    pfpds::pfp_sa_support<char> sa_support(pfp);
+    std::less<uint8_t> uint8_t_comp;
+    pfpds::dictionary<uint8_t> l1_d(yeast_pfp_path, w_l1, uint8_t_comp);
+    pfpds::parse l1_p(yeast_pfp_path, l1_d.n_phrases() + 1);
+    pfpds::pf_parsing<uint8_t> l1_pfp(l1_d, l1_p, true, true);
+    pfpds::pfp_sa_support<uint8_t> l1_sa_support(l1_pfp);
 
-    std::vector<char> pfpds_bwt(pfp.n, '\0');
-    for (std::size_t i = 0; i < pfp.n; i++)
+    std::vector<uint8_t> pfpds_bwt(l1_pfp.n, '\0');
+    for (pfpds::long_type i = 0; i < l1_pfp.n; i++)
     {
-        auto sn = (sa_support(i) + pfp.w - 1) % pfp.n;  // suffix number
-        auto p_i = pfp.rank_b_p(sn + 1);                // phrase number
-        auto id_p_i = pfp.pars.p[p_i - 1];              // phrase_id of the phrase that i belongs to.
-        size_t occ_in_p_i_in_D = pfp.dict.select_b_d(id_p_i) + (sn - pfp.select_b_p(p_i));
-        auto c = pfp.dict.d[occ_in_p_i_in_D];
+        auto sn = (l1_sa_support(i) + l1_pfp.w - 1) % l1_pfp.n; // suffix number
+        auto p_i = l1_pfp.rank_b_p(sn + 1);                     // phrase number
+        auto id_p_i = l1_pfp.pars.p[p_i - 1];                   // phrase_id of the phrase that i belongs to.
+        size_t occ_in_p_i_in_D = l1_pfp.dict.select_b_d(id_p_i) + (sn - l1_pfp.select_b_p(p_i));
+        auto c = l1_pfp.dict.d[occ_in_p_i_in_D];
         pfpds_bwt[i] = c;
     }
     spdlog::info("Done building test bwt");
@@ -247,12 +259,20 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
     // Build the ri
     std::size_t chunks = 5;
     std::size_t threads = 12;
-    rpfbwt::rpfbwt_algo<char> rpfbwt_algo(yeast_pfp_path, w_l1, w_l2, int_shift, chunks);
+    pfpds::dictionary<uint8_t> l1_d_copy(yeast_pfp_path, w_l1, uint8_t_comp, true, true, true, true, false, true, false);
+    rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d_copy, int_shift);
+    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(yeast_pfp_path + ".parse", w_l2, l2_comp);
+    pfpds::parse l2_p(yeast_pfp_path + ".parse", l2_d.n_phrases() + 1);
+    pfpds::pf_parsing<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp(l2_d, l2_p, false, true);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(yeast_pfp_path, l1_d_copy, l2_pfp, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
     // Read in the rle bwt
     rle::RLEString rle_bwt;
     rle_bwt.load(yeast_pfp_path + ".rlebwt");
+
+    std::vector<uint8_t> rle_bwt_vector;
+    for (std::size_t i = 0; i < rle_bwt.size(); i++) { rle_bwt_vector.push_back(rle_bwt[i]); }
 
     all_good = true; mismatch = 0;
     for (std::size_t i = 0; i < pfpds_bwt.size(); i++)
@@ -277,7 +297,7 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
         rle::RunType run = *rle_iterator;
         std::size_t offset = rle::RunTraits::start(run);
 
-        std::size_t from_sa_support = sa_support(offset);
+        std::size_t from_sa_support = l1_sa_support(offset);
         all_good = all_good and (sa_values[sa_i] == from_sa_support);
         if (not all_good) { mismatch = sa_i; break; }
 
