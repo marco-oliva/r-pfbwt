@@ -168,19 +168,17 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
                       "ATTTTTCCCCCCCCTTTAAAAAAACCCAAAACAAGGGGGTGGGGGCCCCCGGGGGGGGCCCCCCCCAAGCCAAAAACGAAAAA"
                       "ACCCCCGTCCTTTTCACCCCACGGGTGGTGTGTTTTTTTTGGGGGTGGGGCCCGCGGG";
 
-    
+
     // Create PFP fpr rpfbwt
     std::less<uint8_t> char_comp;
-
-    
     pfpds::dictionary<uint8_t> l1_d(dict_l1, w_l1, char_comp);
     rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d, int_shift);
-    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(dict_l2, w_l2, l2_comp, true, true, true, true, true, true, true);
+    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(dict_l2, w_l2, l2_comp);
     pfpds::parse l2_p(parse_l2, l2_d.n_phrases() + 1);
-    pfpds::pf_parsing<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp(l2_d, l2_p, false, true);
-    
+    pfpds::pf_parsing<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp(l2_d, l2_p, true, true);
+
     std::size_t chunks = 5;
-    std::size_t threads = 3;
+    std::size_t threads = 12;
     rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo("mem", l1_d, l2_pfp, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
@@ -204,7 +202,7 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
     parse_l1_copy.push_back(0);
     pfpds::dictionary<uint8_t> dictionary(dict_l1, w_l1, char_comp);
     pfpds::parse parsing(parse_l1_copy, dictionary.n_phrases() + 1);
-    pfpds::pf_parsing<uint8_t> pfp(dictionary, parsing);
+    pfpds::pf_parsing<uint8_t> pfp(dictionary, parsing, true, true);
     pfpds::pfp_sa_support<uint8_t> sa_support(pfp);
 
     std::vector<std::size_t> sa_values;
@@ -213,18 +211,18 @@ TEST_CASE( "pfp<uint8_t> SA from example", "[small]" )
     sa_values_is.read((char*)&sa_values_size, sizeof(std::size_t));
     sa_values.resize(sa_values_size);
     sa_values_is.read((char*)&sa_values[0], sizeof(std::size_t) * sa_values.size());
-    
+
     std::size_t sa_i = 0;
     rle::RLEString::RunIterator rle_iterator(rle_bwt);
     while (not rle_iterator.end())
     {
         rle::RunType run = *rle_iterator;
         std::size_t offset = rle::RunTraits::start(run);
-        
+
         std::size_t from_sa_support = sa_support(offset);
         all_good = all_good and (sa_values[sa_i] == from_sa_support);
         if (not all_good) { mismatch = sa_i; break; }
-    
+
         rle_iterator.operator++(); sa_i++;
     }
     REQUIRE(all_good);
@@ -243,11 +241,11 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
     std::less<uint8_t> uint8_t_comp;
     pfpds::dictionary<uint8_t> l1_d(yeast_pfp_path, w_l1, uint8_t_comp);
     pfpds::parse l1_p(yeast_pfp_path, l1_d.n_phrases() + 1);
-    pfpds::pf_parsing<uint8_t> l1_pfp(l1_d, l1_p, false, false);
+    pfpds::pf_parsing<uint8_t> l1_pfp(l1_d, l1_p, true, true);
     pfpds::pfp_sa_support<uint8_t> l1_sa_support(l1_pfp);
 
     std::vector<uint8_t> pfpds_bwt(l1_pfp.n, '\0');
-    for (std::size_t i = 0; i < l1_pfp.n; i++)
+    for (pfpds::long_type i = 0; i < l1_pfp.n; i++)
     {
         auto sn = (l1_sa_support(i) + l1_pfp.w - 1) % l1_pfp.n; // suffix number
         auto p_i = l1_pfp.rank_b_p(sn + 1);                     // phrase number
@@ -261,11 +259,12 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
     // Build the ri
     std::size_t chunks = 5;
     std::size_t threads = 12;
-    rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d, int_shift);
-    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(yeast_pfp_path + ".parse", w_l2, l2_comp, true, true, true, true, true, true, true);
+    pfpds::dictionary<uint8_t> l1_d_copy(yeast_pfp_path, w_l1, uint8_t_comp, true, true, true, true, false, true, false);
+    rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d_copy, int_shift);
+    pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(yeast_pfp_path + ".parse", w_l2, l2_comp);
     pfpds::parse l2_p(yeast_pfp_path + ".parse", l2_d.n_phrases() + 1);
     pfpds::pf_parsing<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp(l2_d, l2_p, false, true);
-    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(yeast_pfp_path, l1_d, l2_pfp, int_shift, chunks);
+    rpfbwt::rpfbwt_algo<uint8_t> rpfbwt_algo(yeast_pfp_path, l1_d_copy, l2_pfp, int_shift, chunks);
     rpfbwt_algo.l1_refined_rindex(threads);
 
     // Read in the rle bwt
@@ -274,7 +273,7 @@ TEST_CASE( "Compare r-index with PFP-DS", "[yeast]" )
 
     std::vector<uint8_t> rle_bwt_vector;
     for (std::size_t i = 0; i < rle_bwt.size(); i++) { rle_bwt_vector.push_back(rle_bwt[i]); }
-    
+
     all_good = true; mismatch = 0;
     for (std::size_t i = 0; i < pfpds_bwt.size(); i++)
     {

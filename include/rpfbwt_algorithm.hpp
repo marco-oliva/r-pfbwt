@@ -270,6 +270,14 @@ public:
     l2_pfp_v_table(l2_d.alphabet_size),
     rle_chunks(out_rle_name, bwt_chunks)
     {
+        assert(l1_d.saD_flag);
+        assert(l1_d.daD_flag);
+        assert(l1_d.lcpD_flag);
+        assert(l1_d.colex_id_flag);
+        assert(l2_pfp.bwt_P_ilist_flag);
+        assert(l2_pfp.dict.colex_id_flag);
+        assert(l2_pfp.pars.saP_flag);
+        
         init_d_lengths<dict_l1_data_type>(l1_d.d, l1_d_lengths);
         init_d_lengths<parse_int_type>(l2_d.d, l2_d_lengths);
         
@@ -426,7 +434,7 @@ public:
                             auto l2_M_entry = l2_pfp.M[curr_l2_row];
                             
                             // get inverted lists of corresponding phrases
-                            std::vector<std::reference_wrapper<const std::vector<pfpds::long_type>>> ilists;
+                            std::vector<pfpds::long_type> ilists_idxs;
                             std::vector<dict_l1_data_type> ilist_corresponding_chars;
                             for (pfpds::long_type c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it ++)
                             {
@@ -438,16 +446,19 @@ public:
     
                                 if (pids.find(l1_pid) != pids.end())
                                 {
-                                    ilists.push_back(std::cref(l2_pfp.bwt_p_ilist[l2_pfp.dict.colex_id[c_it] + 1]));
+                                    ilists_idxs.push_back(l2_pid);
                                     dict_l1_data_type c = l1_d.d[l1_d.select_b_d(l1_pid + 1) - (suffix_length + 2)];
                                     ilist_corresponding_chars.push_back(c);
                                 }
                             }
-    
+     
                             // make a priority queue from the inverted lists
                             typedef std::pair<pfpds::long_type, std::pair<pfpds::long_type, pfpds::long_type>> ilist_pq_t;
                             std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
-                            for (pfpds::long_type il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
+                            for (pfpds::long_type il_i = 0; il_i < ilists_idxs.size(); il_i++)
+                            {
+                                ilist_pq.push({ l2_pfp.bwt_p_ilist[ilists_idxs[il_i]][0], { il_i, 0 } });
+                            }
                             
                             // now pop elements from the priority queue and write out the corresponding character
                             while (not ilist_pq.empty())
@@ -463,9 +474,9 @@ public:
                                 // keep iterating
                                 pfpds::long_type arr_i_c_il = curr.second.first;  // ith array
                                 pfpds::long_type arr_x_c_il = curr.second.second; // index in i-th array
-                                if (arr_x_c_il + 1 < ilists[arr_i_c_il].get().size())
+                                if (arr_x_c_il + 1 < l2_pfp.bwt_p_ilist[ilists_idxs[arr_i_c_il]].size())
                                 {
-                                    ilist_pq.push({ ilists[arr_i_c_il].get()[arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
+                                    ilist_pq.push({ l2_pfp.bwt_p_ilist[ilists_idxs[arr_i_c_il]][arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
                                 }
                             }
                         }
@@ -603,7 +614,7 @@ public:
                         auto& l2_M_entry = l2_pfp.M[curr_l2_row];
         
                         // get inverted lists of corresponding phrases
-                        std::vector<std::reference_wrapper<const std::vector<pfpds::long_type>>> ilists;
+                        std::vector<pfpds::long_type> ilists_idxs;
                         std::vector<std::reference_wrapper<const std::vector<pfpds::long_type>>> ilists_e_arrays;
                         std::vector<pfpds::long_type> ilist_corresponding_sa_expanded_values;
                         for (pfpds::long_type c_it = l2_M_entry.left; c_it <= l2_M_entry.right; c_it++)
@@ -616,7 +627,7 @@ public:
     
                             if (pids.find(l1_pid) != pids.end())
                             {
-                                ilists.push_back(std::cref(l2_pfp.bwt_p_ilist[l2_pid]));
+                                ilists_idxs.push_back(l2_pid);
                                 ilists_e_arrays.push_back(std::ref(E_arrays[l2_pid - 1]));
                                 
                                 // get the length of the current l2_suffix by expanding phrases
@@ -635,7 +646,10 @@ public:
                         // make a priority queue from the inverted lists
                         typedef std::pair<pfpds::long_type, std::pair<pfpds::long_type, pfpds::long_type>> ilist_pq_t;
                         std::priority_queue<ilist_pq_t, std::vector<ilist_pq_t>, std::greater<ilist_pq_t>> ilist_pq;
-                        for (pfpds::long_type il_i = 0; il_i < ilists.size(); il_i++) { ilist_pq.push({ ilists[il_i].get()[0], { il_i, 0 } }); }
+                        for (pfpds::long_type il_i = 0; il_i < ilists_idxs.size(); il_i++)
+                        {
+                            ilist_pq.push({ l2_pfp.bwt_p_ilist[ilists_idxs[il_i]][0], { il_i, 0 } });
+                        }
         
                         // now pop elements from the priority queue and write out the corresponding character
                         while (not ilist_pq.empty())
@@ -660,9 +674,9 @@ public:
                             // keep iterating
                             pfpds::long_type arr_i_c_il = curr.second.first;  // ith array
                             pfpds::long_type arr_x_c_il = curr.second.second; // index in i-th array
-                            if (arr_x_c_il + 1 < ilists[arr_i_c_il].get().size())
+                            if (arr_x_c_il + 1 < l2_pfp.bwt_p_ilist[ilists_idxs[arr_i_c_il]].size())
                             {
-                                ilist_pq.push({ ilists[arr_i_c_il].get()[arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
+                                ilist_pq.push({ l2_pfp.bwt_p_ilist[ilists_idxs[arr_i_c_il]][arr_x_c_il + 1], { arr_i_c_il, arr_x_c_il + 1 } });
                             }
                             
                             sa_values_c++;
