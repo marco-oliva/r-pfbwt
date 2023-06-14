@@ -27,7 +27,7 @@ git clone https://github.com/marco-oliva/r-pfbwt.git
 cd r-pfbwt
 mkdir build && cd build
 cmake ..
-make 
+make -j
 ```
  
 ## How to use `r-pfbwt`
