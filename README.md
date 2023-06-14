@@ -86,8 +86,8 @@ Please, if you use this tool in an academic setting cite the following papers:
 ```
 @article {oliva2023recursiveRI,
     title = {Building a Pangenome Alignment Index via Recursive Prefix-Free Parsing},
-	author={Oliva, Marco and Gagie, Travis and Boucher, Christina},
-	journal={bioRxiv},
+    author={Oliva, Marco and Gagie, Travis and Boucher, Christina},
+    journal={bioRxiv},
     pages={2023--01},
     year={2023},
     publisher={Cold Spring Harbor Laboratory}
