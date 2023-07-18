@@ -1,8 +1,6 @@
 //
 //  rpfbwt_algorithm.hpp
 //
-//  Copyright 2022 Marco Oliva. All rights reserved.
-//
 
 #ifndef rpfbwt_algorithm_hpp
 #define rpfbwt_algorithm_hpp
@@ -15,6 +13,11 @@
 
 #undef max
 #include <rle/rle_string.hpp>
+
+// #include <sampled_lcp_support.hpp>
+// #include <p_inverted_list_support.hpp>
+#include <v_table_support.hpp>
+#include <end_arrays_support.hpp>
 
 namespace rpfbwt
 {
@@ -53,116 +56,20 @@ private:
     
     std::less<dict_l1_data_type> l1_d_comp;
     const pfpds::dictionary<dict_l1_data_type>& l1_d;
-    std::vector<pfpds::long_type> l1_d_lengths;
-    std::vector<pfpds::long_type> l1_freq;
-    
+
     l2_colex_comp l2_comp;
     const pfpds::dictionary<parse_int_type, l2_colex_comp>& l2_d;
     const pfpds::parse& l2_p;
     const pfpds::pf_parsing<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl>& l2_pfp;
-    std::vector<pfpds::long_type> l2_d_lengths;
-    std::vector<std::vector<pfpds::long_type>> E_arrays;
-    pfpds::long_type l1_n = 0; // also used to initialize l1_n
-    
-    std::vector<std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> l2_pfp_v_table; // (row in which that char appears, number of times per row)
+    v_table_support<parse_int_type, l2_colex_comp, pfpds::pfp_wt_sdsl> l2_pfp_v_table; // (row in which that char appears, number of times per row)
+
+    end_arrays_support<dict_l1_data_type, l2_colex_comp, parse_int_type> E_arrays;
+    pfpds::long_type l1_n = 0;
 
     static constexpr pfpds::long_type default_num_of_chunks = 1;
     std::vector<std::tuple<pfpds::long_type, pfpds::long_type, pfpds::long_type, pfpds::long_type>> chunks;
     
     rle::RLEString::RLEncoderMerger rle_chunks;
-    
-    template <typename dict_char_type>
-    void
-    init_d_lengths(const std::vector<dict_char_type>& dict_array, std::vector<pfpds::long_type>& out)
-    {
-        spdlog::info("Precomputing d lengths");
-        
-        pfpds::long_type curr_length = 0;
-        for (pfpds::long_type i = 0; i < dict_array.size(); i++)
-        {
-            curr_length += 1;
-            if (dict_array[i] == EndOfWord) { out.push_back(curr_length - 1); curr_length = 0; }
-        }
-    }
-    
-    void
-    init_v_table()
-    {
-        spdlog::info("Creating v table");
-        
-        // now build V
-        for (pfpds::long_type row = 0; row < l2_pfp.M.size(); row++)
-        {
-            const auto& m =  l2_pfp.M[row];
-        
-            std::vector<std::pair<parse_int_type, pfpds::long_type>> phrase_counts;
-            for (pfpds::long_type r = m.left; r <= m.right; r++)
-            {
-                auto phrase = l2_pfp.dict.colex_id[r];
-                pfpds::long_type phrase_start = l2_pfp.dict.select_b_d(phrase + 1);
-                pfpds::long_type phrase_length =  l2_d_lengths[phrase];
-                parse_int_type c = l2_pfp.dict.d[phrase_start + (phrase_length - m.len - 1)];
-            
-                if (phrase_counts.empty() or phrase_counts.back().first != c)
-                {
-                    phrase_counts.push_back(std::make_pair(c, l2_pfp.freq[phrase + 1]));
-                }
-                else
-                {
-                    phrase_counts.back().second += l2_pfp.freq[phrase + 1];// 1;
-                }
-            }
-        
-            // update
-            for (auto const& c_count : phrase_counts)
-            {
-                std::pair<pfpds::long_type, pfpds::long_type> v_element = std::make_pair(row, c_count.second);
-                l2_pfp_v_table[c_count.first].emplace_back(v_element);
-            }
-        }
-    }
-    
-    pfpds::long_type
-    init_E_arrays()
-    {
-        spdlog::info("Creating E arrays");
-        
-        E_arrays.resize(l2_pfp.dict.n_phrases());
-        pfpds::long_type end_pos_from_start = 0;
-        
-        // read P2 and expand each phrase to get the end position in the text order
-        std::vector<pfpds::long_type> end_positions;
-        for (pfpds::long_type i = 0; i < l2_pfp.pars.p.size() - 1; i++)
-        {
-            pfpds::long_type l2_pid = l2_pfp.pars.p[i];
-            pfpds::long_type l2_phrase_start = l2_pfp.dict.select_b_d(l2_pid);
-            pfpds::long_type l2_phrase_end = l2_phrase_start + l2_d_lengths[l2_pid - 1] - 1;
-            if (l2_phrase_start < l2_pfp.w) { l2_phrase_start = l2_pfp.w; }
-            
-            for (pfpds::long_type j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
-            {
-                pfpds::long_type l1_pid = l2_pfp.dict.d[j] - int_shift;
-                pfpds::long_type l1_phrase_length = l1_d_lengths[l1_pid - 1];
-    
-                end_pos_from_start += (l1_phrase_length - l1_d.w);
-            }
-            end_positions.push_back(end_pos_from_start);
-        }
-        
-        // now reorder according to P2's SA
-        for (pfpds::long_type i = 0; i < l2_pfp.pars.saP.size(); i++)
-        {
-            pfpds::long_type sa_value = l2_pfp.pars.saP[i];
-            
-            if (sa_value == 0) { continue; } // { E_arrays[l2_pfp.pars.p[l2_pfp.pars.p.size() - 2]].push_back(end_positions.back()); }
-            else
-            {
-                E_arrays[l2_pfp.pars.p[sa_value - 1] - 1].push_back(end_positions[sa_value - 1]);
-            }
-        }
-    
-        return end_pos_from_start;
-    }
     
     // Computes ranges for parallel computation
     // suffix start, suffix end, this_left, this_row
@@ -174,7 +81,7 @@ private:
         pfpds::long_type chunk_size = (num_of_chunks > 1) ? (l1_n / (num_of_chunks)) : l1_n + 1;
         
         // Go through the suffixes of D and compute chunks
-        pfpds::long_type i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
+        pfpds::long_type i = 1; // This should be safe since the first entry of sa is always the dollar sign used to compute the sa
         
         pfpds::long_type l_left  = 0;
         pfpds::long_type l_right = 0;
@@ -187,34 +94,34 @@ private:
             auto sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
-            assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
+            assert(phrase > 0 and phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
             pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
-            if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
+            if (l1_d.b_d[sn] or suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
             }
             else
             {
                 i++;
-                l_right += l1_freq[phrase] - 1;
+                l_right += E_arrays.l1_freq(phrase) - 1;
                 
                 if (i < l1_d.saD.size())
                 {
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
-                    assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                    assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                     pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                     
-                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
+                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) and (suffix_length == new_suffix_length))
                     {
                         ++i;
-                        l_right += l1_freq[new_phrase];
+                        l_right += E_arrays.l1_freq(new_phrase);
                         
                         if (i < l1_d.saD.size())
                         {
                             new_sn = l1_d.saD[i];
                             new_phrase = l1_d.daD[i] + 1;
-                            assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                            assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                             new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                         }
                     }
@@ -260,14 +167,14 @@ public:
     :
     int_shift(pfp_integer_shift),
     l1_d(l1_d_r),
-    l1_freq(l1_d.n_phrases() + 1, 0),
     l1_prefix(prefix),
     out_rle_name(l1_prefix + ".rlebwt"),
     l2_comp(l1_d, int_shift),
     l2_d(l2_pfp_r.dict),
     l2_p(l2_pfp_r.pars),
     l2_pfp(l2_pfp_r),
-    l2_pfp_v_table(l2_d.alphabet_size),
+    l2_pfp_v_table(l2_pfp),
+    E_arrays(l1_d, l2_d, l2_p),
     rle_chunks(out_rle_name, bwt_chunks)
     {
         assert(l1_d.saD_flag);
@@ -278,26 +185,7 @@ public:
         assert(l2_pfp.dict.colex_id_flag);
         assert(l2_pfp.pars.saP_flag);
         
-        init_d_lengths<dict_l1_data_type>(l1_d.d, l1_d_lengths);
-        init_d_lengths<parse_int_type>(l2_d.d, l2_d_lengths);
-        
-        // compute frequencies
-        for (pfpds::long_type i = 0; i < l2_pfp.pars.p.size() - 1; i++)
-        {
-            pfpds::long_type l2_pid = l2_pfp.pars.p[i];
-            pfpds::long_type l2_phrase_start = l2_pfp.dict.select_b_d(l2_pid);
-            pfpds::long_type l2_phrase_end = l2_phrase_start + l2_d_lengths[l2_pid - 1] - 1;
-            if (l2_phrase_start < l2_pfp.w) { l2_phrase_start = l2_pfp.w; }
-        
-            for (pfpds::long_type j = l2_phrase_start; j <= (l2_phrase_end - l2_pfp.w); j++)
-            {
-                pfpds::long_type l1_pid = l2_pfp.dict.d[j] - int_shift;
-                l1_freq[l1_pid] += 1;
-            }
-        }
-        
-        init_v_table();
-        this->l1_n = init_E_arrays();
+        this->l1_n = E_arrays.l1_length();
         compute_chunks(bwt_chunks);
     }
     
@@ -321,7 +209,7 @@ public:
             pfpds::long_type sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
             pfpds::long_type phrase = l1_d.daD[i] + 1;
-            assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
+            assert(phrase > 0 and phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
             pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
             if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
@@ -336,28 +224,28 @@ public:
                 pids.insert(phrase);
                 
                 i++;
-                l_right += l1_freq[phrase] - 1;
+                l_right += E_arrays.l1_freq(phrase) - 1;
             
                 if (i < l1_d.saD.size())
                 {
                     pfpds::long_type new_sn = l1_d.saD[i];
                     pfpds::long_type new_phrase = l1_d.daD[i] + 1;
-                    assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                    assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                     pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
-                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
+                    while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) and (suffix_length == new_suffix_length))
                     {
                         chars.insert(l1_d.d[((new_sn + l1_d.d.size() - 1) % l1_d.d.size())]);
                         pids.insert(new_phrase);
                         ++i;
                     
-                        l_right += l1_freq[new_phrase];
+                        l_right += E_arrays.l1_freq(new_phrase);
                     
                         if (i < l1_d.saD.size())
                         {
                             new_sn = l1_d.saD[i];
                             new_phrase = l1_d.daD[i] + 1;
-                            assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                            assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                             new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                         }
                     }
@@ -376,7 +264,7 @@ public:
                     pfpds::long_type hard_chars_before = hard_easy_chars + hard_hard_chars;
                     
                     // shorthands
-                    typedef std::reference_wrapper<std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> ve_t; // (row in which that char appears, number of times per row)
+                    typedef std::reference_wrapper<const std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> ve_t; // (row in which that char appears, number of times per row)
                     typedef pfpds::long_type ve_pq_t; // for the priority queue the row is enough, the other ingo can be retrieved from ve_t
                     typedef std::pair<ve_pq_t, std::pair<pfpds::long_type, pfpds::long_type>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
                     
@@ -386,7 +274,7 @@ public:
                     for (const auto& pid : pids)
                     {
                         parse_int_type adj_pid = pid + int_shift;
-                        v.push_back(std::ref(l2_pfp_v_table[adj_pid]));
+                        v.push_back(std::cref(l2_pfp_v_table[adj_pid]));
                         pids_v.push_back(adj_pid);
                     }
 
@@ -521,9 +409,9 @@ public:
             auto sn = l1_d.saD[i];
             // Check if the suffix has length at least w and is not the complete phrase.
             auto phrase = l1_d.daD[i] + 1;
-            assert(phrase > 0 && phrase < l1_freq.size()); // + 1 because daD is 0-based
+            assert(phrase > 0 and phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
             pfpds::long_type suffix_length = l1_d.select_b_d(l1_d.rank_b_d(sn + 1) + 1) - sn - 1;
-            if (l1_d.b_d[sn] || suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
+            if (l1_d.b_d[sn] or suffix_length < l1_d.w) // skip full phrases or suffixes shorter than w
             {
                 ++i; // Skip
             }
@@ -536,13 +424,13 @@ public:
                 pids.insert(phrase);
             
                 i++;
-                l_right += l1_freq[phrase] - 1;
+                l_right += E_arrays.l1_freq(phrase) - 1;
             
                 if (i < l1_d.saD.size())
                 {
                     auto new_sn = l1_d.saD[i];
                     auto new_phrase = l1_d.daD[i] + 1;
-                    assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                    assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                     pfpds::long_type new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                 
                     while (i < l1_d.saD.size() && (l1_d.lcpD[i] >= suffix_length) && (suffix_length == new_suffix_length))
@@ -551,13 +439,13 @@ public:
                         pids.insert(new_phrase);
                         ++i;
                     
-                        l_right += l1_freq[new_phrase];
+                        l_right += E_arrays.l1_freq(new_phrase);
                     
                         if (i < l1_d.saD.size())
                         {
                             new_sn = l1_d.saD[i];
                             new_phrase = l1_d.daD[i] + 1;
-                            assert(new_phrase > 0 && new_phrase < l1_freq.size()); // + 1 because daD is 0-based
+                            assert(new_phrase > 0 and new_phrase < (l1_d.n_phrases() + 1)); // + 1 because daD is 0-based
                             new_suffix_length = l1_d.select_b_d(l1_d.rank_b_d(new_sn + 1) + 1) - new_sn - 1;
                         }
                     }
@@ -573,7 +461,7 @@ public:
                     pfpds::long_type sa_values_c = 0; // number of sa values computed in this range
                     
                     // shorthands
-                    typedef std::reference_wrapper<std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> ve_t; // (row in which that char appears, number of times per row)
+                    typedef std::reference_wrapper<const std::vector<std::pair<pfpds::long_type, pfpds::long_type>>> ve_t; // (row in which that char appears, number of times per row)
                     typedef pfpds::long_type ve_pq_t; // for the priority queue the row is enough, the other ingo can be retrieved from ve_t
                     typedef std::pair<ve_pq_t, std::pair<pfpds::long_type, pfpds::long_type>> pq_t; // .first : row, this element is the .second.second-th element of the .second.first array
     
@@ -583,7 +471,7 @@ public:
                     for (const auto& pid : pids)
                     {
                         parse_int_type adj_pid = pid + int_shift;
-                        v.push_back(std::ref(l2_pfp_v_table[adj_pid]));
+                        v.push_back(std::cref(l2_pfp_v_table[adj_pid]));
                         pids_v.push_back(adj_pid);
                     }
     
@@ -637,7 +525,7 @@ public:
                                 for (pfpds::long_type p_it_b = l2_suff_start; p_it_b <= l2_suff_end; p_it_b++)
                                 {
                                     pfpds::long_type adj_pid = l2_pfp.dict.d[p_it_b] - int_shift;
-                                    sa_r += l1_d_lengths[adj_pid - 1] - l1_d.w; // l1_d.select_b_d(adj_pid + 1) - l1_d.select_b_d(adj_pid) - 1 - l1_d.w;
+                                    sa_r += l1_d.lengths[adj_pid - 1] - l1_d.w; // l1_d.select_b_d(adj_pid + 1) - l1_d.select_b_d(adj_pid) - 1 - l1_d.w;
                                 }
                                 ilist_corresponding_sa_expanded_values.push_back(sa_r); // the sum of the lengsh of each l1 pid in the l2 phrase suffix
                             }

@@ -54,11 +54,11 @@ int main(int argc, char **argv)
     
     // Set tmp dir for rle string
     if (not tmp_dir.empty()) { rle::TempFile::setDirectory(tmp_dir); }
-    
+
     // Build dictionaries and parse
     std::less<uint8_t> uint8_t_comp;
     pfpds::dictionary<uint8_t> l1_d(l1_prefix, w1, uint8_t_comp, true, true, true, true, false, true, false);
-    
+
     rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp l2_comp(l1_d, int_shift);
     pfpds::dictionary<uint32_t, rpfbwt::rpfbwt_algo<uint8_t, uint32_t>::l2_colex_comp> l2_d(l1_prefix + ".parse", w2, l2_comp);
     pfpds::parse l2_p(l1_prefix + ".parse", l2_d.n_phrases() + 1);
